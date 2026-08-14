@@ -1,9 +1,0 @@
-Package: com.guy.filzer
-Name: Filzer
-Version: 1.0
-Architecture: iphoneos-arm
-Description: A minimal SwiftUI iOS app.
-Maintainer: Guy
-Author: Guy
-Section: Utilities
-Depends: firmware (>= 15.0)

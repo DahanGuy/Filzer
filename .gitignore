@@ -1,5 +1,6 @@
-.theos/
-packages/
-*.deb
-*.ipa
 .DS_Store
+*.xcodeproj
+.build/
+DerivedData/
+xcuserdata/
+.swiftpm/

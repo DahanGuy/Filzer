@@ -1,7 +1,5 @@
 import SwiftUI
-// PartyUI (github.com/jailbreakdotparty/PartyUI) is vendored under Vendor/PartyUI
-// and compiled straight into this module by the Makefile, so its public types
-// (HeaderLabel, SectionPlatter, FancyButtonStyle, ...) are usable with no import.
+import PartyUI
 
 struct ContentView: View {
 	var body: some View {
@@ -17,4 +15,8 @@ struct ContentView: View {
 		}
 		.padding()
 	}
+}
+
+#Preview {
+	ContentView()
 }
