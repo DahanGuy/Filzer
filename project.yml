@@ -1,3 +1,7 @@
+# Source of truth for Filzer.xcodeproj, which IS committed and is what you
+# actually open/build. This file only matters if you change project
+# structure (targets, packages, settings) — after editing it, regenerate
+# with `xcodegen generate` and commit the updated Filzer.xcodeproj too.
 name: Filzer
 options:
   bundleIdPrefix: com.guy
@@ -18,6 +22,9 @@ targets:
       - Sources
     dependencies:
       - package: PartyUI
+    scheme:
+      management:
+        shared: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.guy.filzer

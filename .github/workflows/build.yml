@@ -19,17 +19,6 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Show toolchain
-        run: |
-          xcodebuild -version
-          xcodebuild -showsdks
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
       - name: Resolve Swift package dependencies
         run: xcodebuild -resolvePackageDependencies -project Filzer.xcodeproj -scheme Filzer
 
