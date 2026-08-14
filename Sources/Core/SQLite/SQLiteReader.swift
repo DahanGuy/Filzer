@@ -51,7 +51,7 @@ final class SQLiteReader {
 
 	func rowCount(table: String) throws -> Int {
 		let result = try run("SELECT COUNT(*) FROM \"\(table.replacingOccurrences(of: "\"", with: "\"\""))\";")
-		guard let text = result.rows.first?.first, let value = Int(text) else { return 0 }
+		guard let firstRow = result.rows.first, let cell = firstRow.first, let text = cell, let value = Int(text) else { return 0 }
 		return value
 	}
 

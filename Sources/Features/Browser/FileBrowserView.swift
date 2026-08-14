@@ -51,7 +51,10 @@ struct FileBrowserView: View {
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
 		.searchable(text: $searchQuery, prompt: "Search This Folder")
-		.toolbar { toolbarContent }
+		.toolbar {
+			ToolbarItem(placement: .navigationBarLeading) { leadingToolbarContent }
+			ToolbarItem(placement: .navigationBarTrailing) { trailingToolbarContent }
+		}
 		.safeAreaInset(edge: .bottom) { bottomBar }
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -273,30 +276,29 @@ struct FileBrowserView: View {
 
 	// MARK: - Toolbar
 
-	@ToolbarContentBuilder
-	private var toolbarContent: some ToolbarContent {
+	@ViewBuilder
+	private var leadingToolbarContent: some View {
 		if viewModel.isSelecting {
-			ToolbarItem(placement: .navigationBarLeading) {
-				Button("Cancel") { viewModel.endSelecting() }
-			}
-			ToolbarItem(placement: .navigationBarTrailing) {
-				Button(viewModel.selection.count == filteredNodes.count ? "Deselect All" : "Select All") {
-					if viewModel.selection.count == filteredNodes.count {
-						viewModel.selection.removeAll()
-					} else {
-						viewModel.selection = Set(filteredNodes.map(\.url))
-					}
+			Button("Cancel") { viewModel.endSelecting() }
+		} else {
+			Button("Select") { viewModel.isSelecting = true }
+		}
+	}
+
+	@ViewBuilder
+	private var trailingToolbarContent: some View {
+		if viewModel.isSelecting {
+			Button(viewModel.selection.count == filteredNodes.count ? "Deselect All" : "Select All") {
+				if viewModel.selection.count == filteredNodes.count {
+					viewModel.selection.removeAll()
+				} else {
+					viewModel.selection = Set(filteredNodes.map(\.url))
 				}
 			}
 		} else {
-			ToolbarItem(placement: .navigationBarLeading) {
-				Button("Select") { viewModel.isSelecting = true }
-			}
-			ToolbarItem(placement: .navigationBarTrailing) {
-				HStack(spacing: 18) {
-					sortMenu
-					addMenu
-				}
+			HStack(spacing: 18) {
+				sortMenu
+				addMenu
 			}
 		}
 	}
