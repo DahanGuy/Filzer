@@ -15,12 +15,14 @@ actor RemoteProviderRegistry {
 		guard let connection = Self.loadConnection(id: connectionID) else {
 			throw FileSystemError.notFound(RemoteURL.url(connectionID: connectionID, path: "/"))
 		}
-		let password = KeychainStore.get(connectionID.uuidString) ?? ""
 		let provider: RemoteFileProvider
 		switch connection.kind {
-		case .webDAV: provider = WebDAVProvider(connection: connection, password: password)
-		case .ftp: provider = FTPProvider(connection: connection, password: password)
-		case .smb: provider = SMBProvider(connection: connection, password: password)
+		case .webDAV: provider = WebDAVProvider(connection: connection, password: KeychainStore.get(connectionID.uuidString) ?? "")
+		case .ftp: provider = FTPProvider(connection: connection, password: KeychainStore.get(connectionID.uuidString) ?? "")
+		case .smb: provider = SMBProvider(connection: connection, password: KeychainStore.get(connectionID.uuidString) ?? "")
+		case .dropbox: provider = DropboxProvider(connection: connection)
+		case .googleDrive: provider = GoogleDriveProvider(connection: connection)
+		case .oneDrive: provider = OneDriveProvider(connection: connection)
 		}
 		providers[connectionID] = provider
 		return provider

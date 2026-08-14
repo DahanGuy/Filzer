@@ -33,6 +33,7 @@ final class RemoteConnectionsStore: ObservableObject {
 		connections.removeAll { $0.id == connection.id }
 		save()
 		KeychainStore.remove(connection.id.uuidString)
+		OAuthTokenStore.remove(for: connection.id)
 		Task { await RemoteProviderRegistry.shared.invalidate(connection.id) }
 	}
 

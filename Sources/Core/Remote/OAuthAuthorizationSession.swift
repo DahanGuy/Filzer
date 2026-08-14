@@ -1,0 +1,67 @@
+import AuthenticationServices
+import Foundation
+import UIKit
+
+/// Runs one interactive OAuth 2.0 authorization-code+PKCE round trip via
+/// `ASWebAuthenticationSession` — the user signs in through the provider's own web
+/// page (Dropbox/Google/Microsoft), never inside a UIWebView Filzer controls, so
+/// their password is never visible to this app.
+@MainActor
+final class OAuthAuthorizationSession: NSObject, ASWebAuthenticationPresentationContextProviding {
+	enum AuthError: LocalizedError {
+		case cancelled
+		case missingCode
+		case invalidCallback
+
+		var errorDescription: String? {
+			switch self {
+			case .cancelled: return "Sign-in was cancelled."
+			case .missingCode: return "The sign-in page didn't return an authorization code."
+			case .invalidCallback: return "Filzer couldn't understand the sign-in response."
+			}
+		}
+	}
+
+	private var session: ASWebAuthenticationSession?
+
+	/// Presents the authorization page at `url` and waits for the redirect back to
+	/// `callbackScheme`, returning the full callback URL (the caller extracts
+	/// whatever query parameters its provider returns, typically `code`).
+	func authorize(url: URL, callbackScheme: String) async throws -> URL {
+		try await withCheckedThrowingContinuation { continuation in
+			let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { callbackURL, error in
+				if let callbackURL {
+					continuation.resume(returning: callbackURL)
+				} else if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin {
+					continuation.resume(throwing: AuthError.cancelled)
+				} else {
+					continuation.resume(throwing: error ?? AuthError.invalidCallback)
+				}
+			}
+			session.presentationContextProvider = self
+			session.prefersEphemeralWebBrowserSession = false
+			self.session = session
+			if !session.start() {
+				continuation.resume(throwing: AuthError.invalidCallback)
+			}
+		}
+	}
+
+	nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+		MainActor.assumeIsolated {
+			UIApplication.shared.connectedScenes
+				.compactMap { ($0 as? UIWindowScene)?.keyWindow }
+				.first ?? ASPresentationAnchor()
+		}
+	}
+}
+
+/// Extracts a single query-parameter value from an OAuth redirect URL.
+extension URL {
+	func oauthQueryValue(_ name: String) -> String? {
+		URLComponents(url: self, resolvingAgainstBaseURL: false)?
+			.queryItems?
+			.first { $0.name == name }?
+			.value
+	}
+}

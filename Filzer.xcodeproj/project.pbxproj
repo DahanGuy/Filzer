@@ -28,6 +28,7 @@
 		29BD438F825983E3D282E308 /* SQLiteViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE946909B816A051CDAE482 /* SQLiteViewerView.swift */; };
 		2D0D4D97B65ECD185EE86FE5 /* PlistEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796E494D8D498CF65535FEE9 /* PlistEditorView.swift */; };
 		2E7B4D1EB87F4C8978C337CB /* FileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB943F8B191C7675ACA37F4 /* FileNode.swift */; };
+		33C3438BBBE201E01569925D /* OAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6EE4383A807FF71E1829339 /* OAuthClient.swift */; };
 		38234B4A96F3DCDD72DCF71C /* FileViewerRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40764E5794CD40FCEB1A2EE1 /* FileViewerRoute.swift */; };
 		40E945399058BA89F866CD1B /* PlistNodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0EC4A0199FFF7A8D5497FBA /* PlistNodeRow.swift */; };
 		41F448C7A6AE4E2AF4DD47B0 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 7BF849D2942D00FA57C035C8 /* SWCompression */; };
@@ -57,6 +58,7 @@
 		92B1466087198293EA125D58 /* ImageViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4D426E998A009D3D996FF6 /* ImageViewerView.swift */; };
 		970748CDA44E534D9989E010 /* WebDAVProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39194F92B3DE7CC81E2782C5 /* WebDAVProvider.swift */; };
 		98EB45339EC93365B7C0B90B /* DirectoryLister.swift in Sources */ = {isa = PBXBuildFile; fileRef = 237F4FCFA87842186BCCACED /* DirectoryLister.swift */; };
+		9A0D4723937E545E56C48204 /* PKCE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22094627BB8B9DFF77118A44 /* PKCE.swift */; };
 		9FEA4596A8AFE155CC7A1363 /* IPAInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85F04AB5B6E5C0E8C3FBF098 /* IPAInspectorView.swift */; };
 		A0B04AF0AB001AC2FFA29FF6 /* BookmarksFlyoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1814DC29AFD6DCF007C1B2A /* BookmarksFlyoutView.swift */; };
 		A1DF4A9E8D64A005663AC0BE /* FileAssociationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972C44F59047A57A2662C23A /* FileAssociationsStore.swift */; };
@@ -66,17 +68,21 @@
 		AE004D0D8D05A4936A34D3BD /* ByteCountFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A7434E90024D514D931B8E /* ByteCountFormat.swift */; };
 		AEF14AF8B0FC878881624FAE /* Unrar in Frameworks */ = {isa = PBXBuildFile; productRef = EBC443C9AD548C749C94A069 /* Unrar */; };
 		AF5B40208557E0FACDBE6321 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62BE4FBABE4320A382D5C8C0 /* AboutView.swift */; };
+		B0B6465E948D9668C389C868 /* GoogleDriveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94344552908F4895CD9C6F7F /* GoogleDriveProvider.swift */; };
 		B44F4979845433392481DCE8 /* SelectionToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270B4AF9A7CEFD9570330872 /* SelectionToolbar.swift */; };
 		BA50446CAA4B97C938E5963F /* ArchiveNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6304B489ED85854B61F14BF /* ArchiveNode.swift */; };
 		BCB94E0CBBB9CA847CC3D4A8 /* ArchiveBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FB462A94DB08EB6D0E1CC1 /* ArchiveBrowserView.swift */; };
 		BE2E4407A77953DE068E87BE /* BackupRestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B24707861212E55E163A44 /* BackupRestoreView.swift */; };
+		BF564C1CB90837FBCB3FAD9E /* DropboxProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF464667A828B06B50F6E000 /* DropboxProvider.swift */; };
 		C3DA49E499A7AF400C4DDA8D /* ClipboardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F622448B9C320FBB65A3CE4C /* ClipboardStore.swift */; };
 		C4AD4C08AE6878EDE66EF603 /* QuickLookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CA42FD92B3216D86D6CC59 /* QuickLookView.swift */; };
+		C50747E69BB0DA4BE36668A3 /* OneDriveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2184D97985D63D288C406A9 /* OneDriveProvider.swift */; };
 		C741465B8FE955D886B90371 /* SWCompressionArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35944416956E0EE670FDE872 /* SWCompressionArchiveService.swift */; };
 		C7854BE3983F4EAA47AB6C56 /* BiometricLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667542D0925B9ADB545BF77B /* BiometricLock.swift */; };
 		C7CB431B841662025528AA63 /* FileRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ADF49C6B8DD07C31B21A6BE /* FileRow.swift */; };
 		C951456C97744D4D3B8C1B32 /* SMBProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AA43319B1AA7F7D1E4CBC2 /* SMBProvider.swift */; };
 		CE7E41B1854A27358FCC5922 /* IPAInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58CE460A8E9E25889BFE9E82 /* IPAInspector.swift */; };
+		D08C465BBE1D595E019CFA1B /* OAuthAuthorizationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273A41BBA3F362DEEDE434B4 /* OAuthAuthorizationSession.swift */; };
 		D313498C8670E3122DA8B067 /* RemoteURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92184627944EDD68850E6C61 /* RemoteURL.swift */; };
 		D3AB4F03B9E52FCAF0AAD869 /* RemoteConnectionsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD849A19993601C08EC0C33 /* RemoteConnectionsStore.swift */; };
 		D78942C1B83825CC58774AC6 /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A74BE4B7FA9B3A2E1DC5E0 /* ArchiveService.swift */; };
@@ -94,6 +100,7 @@
 		ED0C4B73850EA4159DE845E8 /* FileIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8646DDA20321A75F71D26D /* FileIconView.swift */; };
 		EEA2428E99C9B0523AAB3143 /* RarArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2654DD3AA9772FFB024FFA5 /* RarArchiveService.swift */; };
 		EF4F423480DE90EEE8603B85 /* RecentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20FE4F98BBAD365C5FE9FB40 /* RecentsStore.swift */; };
+		EF824EE7A65775A2AF1B36F6 /* OAuthTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1058486A92FCE381E0E881BB /* OAuthTokenStore.swift */; };
 		F21944EDA76AC03411A6F493 /* PlistNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37BE472CA702922988307FFE /* PlistNode.swift */; };
 		F977470AA977953B94FC6EC9 /* FileSystemError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF244468A1452C210D6E125 /* FileSystemError.swift */; };
 		FB084605B51B3EC2B7A2413A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62FE476D9EF438CCF2D443E4 /* Theme.swift */; };
@@ -105,15 +112,18 @@
 /* Begin PBXFileReference section */
 		05A74BE4B7FA9B3A2E1DC5E0 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ArchiveService.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		0BD849A19993601C08EC0C33 /* RemoteConnectionsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RemoteConnectionsStore.swift; path = RemoteConnectionsStore.swift; sourceTree = "<group>"; };
+		1058486A92FCE381E0E881BB /* OAuthTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OAuthTokenStore.swift; path = OAuthTokenStore.swift; sourceTree = "<group>"; };
 		19954C84AC321B484BDE5889 /* WebViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebViewerView.swift; path = WebViewerView.swift; sourceTree = "<group>"; };
 		1D5F495A90F980008B9401F9 /* FileRowContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileRowContextMenu.swift; path = FileRowContextMenu.swift; sourceTree = "<group>"; };
 		1F51464D89B506F3C8A92F31 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EmptyStateView.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		1FB245C685E8533B57325995 /* ErrorAlertModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ErrorAlertModifier.swift; path = ErrorAlertModifier.swift; sourceTree = "<group>"; };
 		20FE4F98BBAD365C5FE9FB40 /* RecentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RecentsStore.swift; path = RecentsStore.swift; sourceTree = "<group>"; };
+		22094627BB8B9DFF77118A44 /* PKCE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PKCE.swift; path = PKCE.swift; sourceTree = "<group>"; };
 		237F4FCFA87842186BCCACED /* DirectoryLister.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DirectoryLister.swift; path = DirectoryLister.swift; sourceTree = "<group>"; };
 		260C49F3ACF8927B3606BB3B /* MediaMetadataReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaMetadataReader.swift; path = MediaMetadataReader.swift; sourceTree = "<group>"; };
 		26C891F6F7DC49D54C98BAD1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		270B4AF9A7CEFD9570330872 /* SelectionToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SelectionToolbar.swift; path = SelectionToolbar.swift; sourceTree = "<group>"; };
+		273A41BBA3F362DEEDE434B4 /* OAuthAuthorizationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OAuthAuthorizationSession.swift; path = OAuthAuthorizationSession.swift; sourceTree = "<group>"; };
 		27CD4E51973A59B6CCCFC308 /* HexEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexEditorView.swift; path = HexEditorView.swift; sourceTree = "<group>"; };
 		29AA43319B1AA7F7D1E4CBC2 /* SMBProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SMBProvider.swift; path = SMBProvider.swift; sourceTree = "<group>"; };
 		2E2449E18436C1FEBDF08499 /* AddRemoteLocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddRemoteLocationView.swift; path = AddRemoteLocationView.swift; sourceTree = "<group>"; };
@@ -159,10 +169,12 @@
 		90544E0EB11EADF22262A69E /* FileInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileInfoView.swift; path = FileInfoView.swift; sourceTree = "<group>"; };
 		910B4F2693616A34FD293DAC /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MediaPlayerView.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
 		92184627944EDD68850E6C61 /* RemoteURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RemoteURL.swift; path = RemoteURL.swift; sourceTree = "<group>"; };
+		94344552908F4895CD9C6F7F /* GoogleDriveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoogleDriveProvider.swift; path = GoogleDriveProvider.swift; sourceTree = "<group>"; };
 		972C44F59047A57A2662C23A /* FileAssociationsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileAssociationsStore.swift; path = FileAssociationsStore.swift; sourceTree = "<group>"; };
 		98474A6B9B1426AE795CD807 /* RemoteProviderRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RemoteProviderRegistry.swift; path = RemoteProviderRegistry.swift; sourceTree = "<group>"; };
 		9E6B469686C41526E4D8D715 /* FTPProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FTPProvider.swift; path = FTPProvider.swift; sourceTree = "<group>"; };
 		A08D4457AB6736D7BDBC675D /* MobileProvisionParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MobileProvisionParser.swift; path = MobileProvisionParser.swift; sourceTree = "<group>"; };
+		A6EE4383A807FF71E1829339 /* OAuthClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OAuthClient.swift; path = OAuthClient.swift; sourceTree = "<group>"; };
 		A9A7434E90024D514D931B8E /* ByteCountFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ByteCountFormat.swift; path = ByteCountFormat.swift; sourceTree = "<group>"; };
 		AE8C4AE3B49D12D2916DD7BD /* FileSearchEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileSearchEngine.swift; path = FileSearchEngine.swift; sourceTree = "<group>"; };
 		B63740BD8C67D634ACDBD936 /* TextEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TextEditorView.swift; path = TextEditorView.swift; sourceTree = "<group>"; };
@@ -171,6 +183,7 @@
 		BF83480481F933D28FF2964C /* CompositeArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CompositeArchiveService.swift; path = CompositeArchiveService.swift; sourceTree = "<group>"; };
 		BF8646DDA20321A75F71D26D /* FileIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileIconView.swift; path = FileIconView.swift; sourceTree = "<group>"; };
 		BF924981A3295D9781EBF0D7 /* PermissionsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PermissionsEditorView.swift; path = PermissionsEditorView.swift; sourceTree = "<group>"; };
+		C2184D97985D63D288C406A9 /* OneDriveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OneDriveProvider.swift; path = OneDriveProvider.swift; sourceTree = "<group>"; };
 		C2654DD3AA9772FFB024FFA5 /* RarArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RarArchiveService.swift; path = RarArchiveService.swift; sourceTree = "<group>"; };
 		C386475388FA3DE49BB060F6 /* ZipArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ZipArchiveService.swift; path = ZipArchiveService.swift; sourceTree = "<group>"; };
 		C4CA42FD92B3216D86D6CC59 /* QuickLookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickLookView.swift; path = QuickLookView.swift; sourceTree = "<group>"; };
@@ -181,6 +194,7 @@
 		D0854AFD8034EBAA24B6E028 /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenView.swift; path = LockScreenView.swift; sourceTree = "<group>"; };
 		D0EC4A0199FFF7A8D5497FBA /* PlistNodeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PlistNodeRow.swift; path = PlistNodeRow.swift; sourceTree = "<group>"; };
 		DEE74B0D99FE3AB41CC19A20 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		DF464667A828B06B50F6E000 /* DropboxProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DropboxProvider.swift; path = DropboxProvider.swift; sourceTree = "<group>"; };
 		E035490190121EDD04B11CD8 /* SandboxedFileSystemEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SandboxedFileSystemEngine.swift; path = SandboxedFileSystemEngine.swift; sourceTree = "<group>"; };
 		E0FE4323B1878C2CCD34028F /* ArchiveFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ArchiveFormat.swift; path = ArchiveFormat.swift; sourceTree = "<group>"; };
 		E1814DC29AFD6DCF007C1B2A /* BookmarksFlyoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BookmarksFlyoutView.swift; path = BookmarksFlyoutView.swift; sourceTree = "<group>"; };
@@ -288,6 +302,12 @@
 				92184627944EDD68850E6C61 /* RemoteURL.swift */,
 				29AA43319B1AA7F7D1E4CBC2 /* SMBProvider.swift */,
 				39194F92B3DE7CC81E2782C5 /* WebDAVProvider.swift */,
+				273A41BBA3F362DEEDE434B4 /* OAuthAuthorizationSession.swift */,
+				A6EE4383A807FF71E1829339 /* OAuthClient.swift */,
+				1058486A92FCE381E0E881BB /* OAuthTokenStore.swift */,
+				DF464667A828B06B50F6E000 /* DropboxProvider.swift */,
+				C2184D97985D63D288C406A9 /* OneDriveProvider.swift */,
+				94344552908F4895CD9C6F7F /* GoogleDriveProvider.swift */,
 			);
 			name = Remote;
 			path = Remote;
@@ -420,6 +440,7 @@
 				667542D0925B9ADB545BF77B /* BiometricLock.swift */,
 				F7EF48AAB1423E79B267A03A /* KeychainStore.swift */,
 				34384BC6B15B80423D4014A3 /* SecurityScopedBookmark.swift */,
+				22094627BB8B9DFF77118A44 /* PKCE.swift */,
 			);
 			name = Security;
 			path = Security;
@@ -778,6 +799,13 @@
 				EF4F423480DE90EEE8603B85 /* RecentsStore.swift in Sources */,
 				D3AB4F03B9E52FCAF0AAD869 /* RemoteConnectionsStore.swift in Sources */,
 				8B71400E81A805FFF8A29CD8 /* SettingsStore.swift in Sources */,
+				D08C465BBE1D595E019CFA1B /* OAuthAuthorizationSession.swift in Sources */,
+				33C3438BBBE201E01569925D /* OAuthClient.swift in Sources */,
+				EF824EE7A65775A2AF1B36F6 /* OAuthTokenStore.swift in Sources */,
+				BF564C1CB90837FBCB3FAD9E /* DropboxProvider.swift in Sources */,
+				C50747E69BB0DA4BE36668A3 /* OneDriveProvider.swift in Sources */,
+				B0B6465E948D9668C389C868 /* GoogleDriveProvider.swift in Sources */,
+				9A0D4723937E545E56C48204 /* PKCE.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
