@@ -77,12 +77,12 @@ struct SQLiteQueryView: View {
 		isRunning = true
 
 		Task {
-			let outcome: Result<SQLiteReader.QueryResult, String> = await Task.detached(priority: .userInitiated) {
+			let outcome: Result<SQLiteReader.QueryResult, SQLiteTaskError> = await Task.detached(priority: .userInitiated) {
 				do {
 					let reader = try SQLiteReader(url: dbURL)
 					return .success(try reader.run(sql))
 				} catch {
-					return .failure(error.localizedDescription)
+					return .failure(SQLiteTaskError(message: error.localizedDescription))
 				}
 			}.value
 
@@ -91,8 +91,8 @@ struct SQLiteQueryView: View {
 			case .success(let result):
 				columnNames = result.columnNames
 				rows = result.rows
-			case .failure(let message):
-				errorMessage = message
+			case .failure(let error):
+				errorMessage = error.message
 			}
 		}
 	}

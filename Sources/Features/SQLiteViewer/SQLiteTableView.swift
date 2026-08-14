@@ -47,14 +47,14 @@ struct SQLiteTableView: View {
 		let dbURL = url
 		let tableName = table
 		let limit = pageSize
-		let outcome: Result<(Int, SQLiteReader.QueryResult), String> = await Task.detached(priority: .userInitiated) {
+		let outcome: Result<(Int, SQLiteReader.QueryResult), SQLiteTaskError> = await Task.detached(priority: .userInitiated) {
 			do {
 				let reader = try SQLiteReader(url: dbURL)
 				let count = try reader.rowCount(table: tableName)
 				let page = try reader.rows(table: tableName, offset: 0, limit: limit)
 				return .success((count, page))
 			} catch {
-				return .failure(error.localizedDescription)
+				return .failure(SQLiteTaskError(message: error.localizedDescription))
 			}
 		}.value
 
@@ -65,8 +65,8 @@ struct SQLiteTableView: View {
 			columnNames = page.columnNames
 			loadedRows = page.rows
 			hasMoreRows = loadedRows.count < count
-		case .failure(let message):
-			errorMessage = message
+		case .failure(let error):
+			errorMessage = error.message
 		}
 	}
 
@@ -82,12 +82,12 @@ struct SQLiteTableView: View {
 		let limit = pageSize
 
 		Task {
-			let outcome: Result<SQLiteReader.QueryResult, String> = await Task.detached(priority: .userInitiated) {
+			let outcome: Result<SQLiteReader.QueryResult, SQLiteTaskError> = await Task.detached(priority: .userInitiated) {
 				do {
 					let reader = try SQLiteReader(url: dbURL)
 					return .success(try reader.rows(table: tableName, offset: offset, limit: limit))
 				} catch {
-					return .failure(error.localizedDescription)
+					return .failure(SQLiteTaskError(message: error.localizedDescription))
 				}
 			}.value
 
@@ -96,8 +96,8 @@ struct SQLiteTableView: View {
 			case .success(let page):
 				loadedRows.append(contentsOf: page.rows)
 				hasMoreRows = !page.rows.isEmpty && loadedRows.count < totalRowCount
-			case .failure(let message):
-				errorMessage = message
+			case .failure(let error):
+				errorMessage = error.message
 			}
 		}
 	}

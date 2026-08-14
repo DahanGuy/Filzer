@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// `Result`'s failure case must conform to `Error`; a plain `String` doesn't. This is
+/// the minimal wrapper shared by every throwaway-`SQLiteReader` call site in this
+/// feature (`SQLiteViewerView`, `SQLiteTableView`, `SQLiteQueryView`).
+struct SQLiteTaskError: Error {
+	let message: String
+}
+
 /// Landing screen for a `.sqlite` file. Lists the database's tables (tap one to page
 /// through its rows in `SQLiteTableView`) and exposes a persistent "Run SQL" entry point
 /// for free-form queries that aren't tied to any single table.
@@ -57,12 +64,12 @@ struct SQLiteViewerView: View {
 	/// C-API calls are blocking, so this never happens directly on the view body.
 	private func loadTableNames() async {
 		let dbURL = url
-		let outcome: Result<[String], String> = await Task.detached(priority: .userInitiated) {
+		let outcome: Result<[String], SQLiteTaskError> = await Task.detached(priority: .userInitiated) {
 			do {
 				let reader = try SQLiteReader(url: dbURL)
 				return .success(try reader.tableNames())
 			} catch {
-				return .failure(error.localizedDescription)
+				return .failure(SQLiteTaskError(message: error.localizedDescription))
 			}
 		}.value
 
@@ -70,8 +77,8 @@ struct SQLiteViewerView: View {
 		switch outcome {
 		case .success(let names):
 			tableNames = names
-		case .failure(let message):
-			errorMessage = message
+		case .failure(let error):
+			errorMessage = error.message
 		}
 	}
 }
