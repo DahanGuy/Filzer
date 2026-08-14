@@ -112,9 +112,9 @@ struct BookmarksFlyoutView: View {
 	/// "Add Location" — Filza's term for pinning a folder the app has no innate access
 	/// to. The document picker grants a one-time security-scoped grant; the bookmark
 	/// data persisted here is what makes that grant durable across launches.
-	private func addLocation(result: Result<[URL], Error>) async {
+	private func addLocation(result: Result<URL, Error>) async {
 		do {
-			guard let url = try result.get().first else { return }
+			let url = try result.get()
 			let didStartAccessing = url.startAccessingSecurityScopedResource()
 			defer {
 				if didStartAccessing { url.stopAccessingSecurityScopedResource() }
