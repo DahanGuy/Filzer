@@ -30,8 +30,10 @@ struct RecentsFlyoutView: View {
 		.navigationTitle("Recents")
 		.toolbar {
 			ToolbarItem(placement: .navigationBarLeading) { Button("Done") { dismiss() } }
-			if !recents.entries.isEmpty {
-				ToolbarItem(placement: .navigationBarTrailing) { Button("Clear") { recents.clear() } }
+			ToolbarItem(placement: .navigationBarTrailing) {
+				if !recents.entries.isEmpty {
+					Button("Clear") { recents.clear() }
+				}
 			}
 		}
 	}
