@@ -46,7 +46,7 @@ enum MediaMetadataReader {
 					}
 					if let audioTrack = asset.tracks(withMediaType: .audio).first,
 					   let formatDescription = audioTrack.formatDescriptions.first,
-					   let basicDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription) {
+					   let basicDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription as! CMAudioFormatDescription) {
 						result.sampleRate = basicDescription.pointee.mSampleRate
 					}
 				}
