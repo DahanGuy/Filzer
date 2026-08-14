@@ -22,10 +22,26 @@ jobs:
       - name: Resolve Swift package dependencies
         run: xcodebuild -resolvePackageDependencies -project Filzer.xcodeproj -scheme Filzer
 
-      - name: Build (iOS Simulator)
+      - name: Build (unsigned, device)
         run: |
           xcodebuild build \
             -project Filzer.xcodeproj \
             -scheme Filzer \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package IPA
+        run: |
+          app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
+          mkdir Payload
+          cp -r "$app_path" Payload/
+          zip -qr Filzer.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Filzer-unsigned-ipa
+          path: Filzer.ipa
