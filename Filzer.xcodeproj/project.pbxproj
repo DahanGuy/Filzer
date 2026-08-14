@@ -610,6 +610,7 @@
 				670045DDAA14FE03DF5CF3ED /* XCRemoteSwiftPackageReference "AMSMB2" */,
 				6C534D16B556F0C0BC4C4563 /* XCRemoteSwiftPackageReference "Unrar.swift" */,
 				087E4689BA9A708D4508DCA9 /* XCRemoteSwiftPackageReference "SWCompression" */,
+				3D0E4414BA5A66B33D2F54D7 /* XCRemoteSwiftPackageReference "BitByteData" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6667A38AF948721F0CCDD630 /* Products */;
@@ -901,6 +902,14 @@
 			requirement = {
 				kind = exactVersion;
 				version = 4.8.6;
+			};
+		};
+		3D0E4414BA5A66B33D2F54D7 /* XCRemoteSwiftPackageReference "BitByteData" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tsolomko/BitByteData";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 2.0.2;
 			};
 		};
 		4B28834DC7A4F941BBF49213 /* XCRemoteSwiftPackageReference "PartyUI" */ = {
