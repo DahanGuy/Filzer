@@ -50,7 +50,7 @@ struct FileRowContextMenuContent: View {
 				Label("Move", systemImage: "folder")
 			}
 
-			if node.pathExtension.lowercased() == "zip" {
+			if ArchiveFormat.isArchive(node.url) {
 				Button(action: onExtractHere) {
 					Label("Extract Here", systemImage: "archivebox")
 				}

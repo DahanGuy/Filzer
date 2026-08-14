@@ -26,11 +26,13 @@
 		39CA480AB85FF4DB9AC8B18F /* FileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B48545A683CD3A5D857CF2B1 /* FileNode.swift */; };
 		3AC744269AA0EF922E4A3BED /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32BE4FE3BAF834C9B55565AE /* MediaPlayerView.swift */; };
 		3C8C463AAC96525F991AF8F2 /* PlistCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6344D52B8786ECF292946B5 /* PlistCodec.swift */; };
+		41F448C7A6AE4E2AF4DD47B0 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 7BF849D2942D00FA57C035C8 /* SWCompression */; };
 		4352405BBF9E6457F7415A0B /* ImageViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 023B4285ADBEFDF85B9EE4C3 /* ImageViewerView.swift */; };
 		43FA4BB4BA8ADD78238CB5AF /* FilzerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667641DAB7C4651FAAFFA10F /* FilzerApp.swift */; };
 		480C450F8FD7758BFAECEBB5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 860C4A5F95CD0393F6B547A1 /* libsqlite3.tbd */; };
 		495643D698F48F0FDD599331 /* SQLiteReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EE4D8D9A3B8868CD6C3A29 /* SQLiteReader.swift */; };
 		4A25428F88F2DB7BB420D88E /* FileOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94148FA929D68D81D7E6FFD /* FileOperation.swift */; };
+		5B6E41FD8F09CFF6B2A43E31 /* AMSMB2 in Frameworks */ = {isa = PBXBuildFile; productRef = 11154EEF9D5BD2B18FF2AF38 /* AMSMB2 */; };
 		5C6A47098B2E79026EF905FF /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D64248339E2DAC450D117949 /* ArchiveService.swift */; };
 		5CB541A08736FFA41A8D1F1A /* FileViewerRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FC84351830A70F2EEE829BD /* FileViewerRoute.swift */; };
 		5FD5438796A5ABBF2EEDE982 /* PasteboardBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8DA494889B2713B4F3C848D /* PasteboardBanner.swift */; };
@@ -63,6 +65,7 @@
 		A5CF4F9AB8FE45BB514834B8 /* TextEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D5C41029864B7DE1AA8AE57 /* TextEditorView.swift */; };
 		A96C4E0AA93091A1D7396DB1 /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFDB412DA2B5CC48E1B97A07 /* TrashView.swift */; };
 		AD8C4986B1A512947AB066E1 /* FileAssociationsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1705476696272211898EC295 /* FileAssociationsStore.swift */; };
+		AEF14AF8B0FC878881624FAE /* Unrar in Frameworks */ = {isa = PBXBuildFile; productRef = EBC443C9AD548C749C94A069 /* Unrar */; };
 		B1534B9EA96CE19DF11D1E07 /* FileSystemError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E0D45A0B16CB6466587A504 /* FileSystemError.swift */; };
 		B299440F9BFBE1D761A866D4 /* WebViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96694FF3B9C53372E437D380 /* WebViewerView.swift */; };
 		B3794680BC2111D788D24E3F /* HexEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE3D428DB82A814F544A0A87 /* HexEditorView.swift */; };
@@ -170,6 +173,9 @@
 				72CCE45626EF11A7A0FF98CA /* PartyUI in Frameworks */,
 				78854D0D9A489B52429A6FA0 /* ZIPFoundation in Frameworks */,
 				480C450F8FD7758BFAECEBB5 /* libsqlite3.tbd in Frameworks */,
+				5B6E41FD8F09CFF6B2A43E31 /* AMSMB2 in Frameworks */,
+				AEF14AF8B0FC878881624FAE /* Unrar in Frameworks */,
+				41F448C7A6AE4E2AF4DD47B0 /* SWCompression in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,6 +576,9 @@
 			packageProductDependencies = (
 				AB24D56658FE65E2F06B97A2 /* PartyUI */,
 				E95445BB8F59CF085871BDB6 /* ZIPFoundation */,
+				11154EEF9D5BD2B18FF2AF38 /* AMSMB2 */,
+				EBC443C9AD548C749C94A069 /* Unrar */,
+				7BF849D2942D00FA57C035C8 /* SWCompression */,
 			);
 			productName = Filzer;
 			productReference = BD4620F3057E1BD9150EFA0F /* Filzer.app */;
@@ -598,6 +607,9 @@
 			packageReferences = (
 				4B28834DC7A4F941BBF49213 /* XCRemoteSwiftPackageReference "PartyUI" */,
 				740C4B1A819EB36A9C4AAC18 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				670045DDAA14FE03DF5CF3ED /* XCRemoteSwiftPackageReference "AMSMB2" */,
+				6C534D16B556F0C0BC4C4563 /* XCRemoteSwiftPackageReference "Unrar.swift" */,
+				087E4689BA9A708D4508DCA9 /* XCRemoteSwiftPackageReference "SWCompression" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6667A38AF948721F0CCDD630 /* Products */;
@@ -883,12 +895,36 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		087E4689BA9A708D4508DCA9 /* XCRemoteSwiftPackageReference "SWCompression" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
+			requirement = {
+				kind = exactVersion;
+				version = 4.8.6;
+			};
+		};
 		4B28834DC7A4F941BBF49213 /* XCRemoteSwiftPackageReference "PartyUI" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jailbreakdotparty/PartyUI.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.2.1;
+			};
+		};
+		670045DDAA14FE03DF5CF3ED /* XCRemoteSwiftPackageReference "AMSMB2" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/amosavian/AMSMB2.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.3;
+			};
+		};
+		6C534D16B556F0C0BC4C4563 /* XCRemoteSwiftPackageReference "Unrar.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mtgto/Unrar.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.4;
 			};
 		};
 		740C4B1A819EB36A9C4AAC18 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
@@ -902,6 +938,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		11154EEF9D5BD2B18FF2AF38 /* AMSMB2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 670045DDAA14FE03DF5CF3ED /* XCRemoteSwiftPackageReference "AMSMB2" */;
+			productName = AMSMB2;
+		};
+		7BF849D2942D00FA57C035C8 /* SWCompression */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 087E4689BA9A708D4508DCA9 /* XCRemoteSwiftPackageReference "SWCompression" */;
+			productName = SWCompression;
+		};
 		AB24D56658FE65E2F06B97A2 /* PartyUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4B28834DC7A4F941BBF49213 /* XCRemoteSwiftPackageReference "PartyUI" */;
@@ -911,6 +957,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 740C4B1A819EB36A9C4AAC18 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		EBC443C9AD548C749C94A069 /* Unrar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6C534D16B556F0C0BC4C4563 /* XCRemoteSwiftPackageReference "Unrar.swift" */;
+			productName = Unrar;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -21,10 +21,10 @@ enum FileClassifier {
 	static func category(for node: FileNode) -> FileCategory {
 		if node.isSymbolicLink { return .symbolicLink }
 		if node.isDirectory { return .folder }
+		if ArchiveFormat.isArchive(node.url) { return .archive }
 
 		let ext = node.pathExtension.lowercased()
 		switch ext {
-		case "zip": return .archive
 		case "plist": return .propertyList
 		case "sqlite", "sqlite3", "db", "db3": return .sqlite
 		case "pdf": return .pdf

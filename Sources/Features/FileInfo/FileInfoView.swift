@@ -76,10 +76,14 @@ struct FileInfoView: View {
 		}
 		.task {
 			switch FileClassifier.category(for: node) {
-			case .image:
-				imageDimensions = MediaMetadataReader.imageDimensions(at: node.url)
-			case .video, .audio:
-				mediaMetadata = await MediaMetadataReader.mediaMetadata(at: node.url)
+			case .image, .video, .audio:
+				guard let (localURL, isTemporary) = try? await FileSystem.current.materializeLocally(node.url) else { return }
+				defer { if isTemporary { try? FileManager.default.removeItem(at: localURL.deletingLastPathComponent()) } }
+				if FileClassifier.category(for: node) == .image {
+					imageDimensions = MediaMetadataReader.imageDimensions(at: localURL)
+				} else {
+					mediaMetadata = await MediaMetadataReader.mediaMetadata(at: localURL)
+				}
 			default:
 				break
 			}

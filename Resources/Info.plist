@@ -24,6 +24,13 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Filzer can use Face ID to keep your files locked when Face ID lock is turned on in Settings.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Filzer uses your local network to connect to SMB file shares you add under Disks.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>

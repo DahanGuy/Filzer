@@ -6,26 +6,48 @@ import UniformTypeIdentifiers
 /// Filza's core screen: browses one folder with list/grid layout, sorting, multi-select
 /// batch actions, and every per-item action via context menu / swipe. Pushes a fresh
 /// instance of itself for subfolders and `FileViewerRoute` for files.
+///
+/// `isRoot` marks the single top-level instance (`RootBrowserShell`'s own root, browsing
+/// "/"): only that instance shows the Disks/Bookmarks/Recents/Settings flyout buttons — every
+/// pushed subfolder is a plain instance with `isRoot == false`.
 struct FileBrowserView: View {
 	let rootURL: URL
 	var displayName: String? = nil
+	var isRoot: Bool = false
 
 	@EnvironmentObject private var settings: SettingsStore
 	@EnvironmentObject private var clipboard: ClipboardStore
-	@EnvironmentObject private var trash: TrashStore
 	@EnvironmentObject private var bookmarks: BookmarksStore
 
 	@StateObject private var viewModel: FileBrowserViewModel
 	@State private var searchQuery = ""
+	@State private var searchScope: SearchScope = .thisFolder
+	@State private var searchResults: [FileNode] = []
+	@State private var isSearchingRoot = false
+	@State private var searchTask: Task<Void, Never>?
+
 	@State private var showingImporter = false
 	@State private var infoNode: FileNode?
 	@State private var openAsTarget: OpenAsTarget?
 	@State private var pendingDeleteURLs: [URL] = []
 	@State private var showingDeleteConfirmation = false
+	@State private var goToPathTarget: URL?
 
-	init(rootURL: URL, displayName: String? = nil) {
+	@State private var showingDisks = false
+	@State private var showingBookmarks = false
+	@State private var showingRecents = false
+	@State private var showingSettings = false
+
+	enum SearchScope: String, CaseIterable, Identifiable {
+		case thisFolder = "This Folder"
+		case root = "Root"
+		var id: String { rawValue }
+	}
+
+	init(rootURL: URL, displayName: String? = nil, isRoot: Bool = false) {
 		self.rootURL = rootURL
 		self.displayName = displayName
+		self.isRoot = isRoot
 		_viewModel = StateObject(wrappedValue: FileBrowserViewModel(rootURL: rootURL))
 	}
 
@@ -37,25 +59,21 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if viewModel.isLoading && viewModel.nodes.isEmpty {
+			if isSearchActive {
+				searchResultsContent
+			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
-			} else if filteredNodes.isEmpty {
-				EmptyStateView(
-					icon: "folder",
-					title: searchQuery.isEmpty ? "This Folder Is Empty" : "No Results",
-					message: searchQuery.isEmpty ? nil : "No items match \u{201c}\(searchQuery)\u{201d}."
-				)
+			} else if viewModel.nodes.isEmpty {
+				emptyStateContent
 			} else {
 				content
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
-		.searchable(text: $searchQuery, prompt: "Search This Folder")
-		.toolbar {
-			ToolbarItem(placement: .navigationBarLeading) { leadingToolbarContent }
-			ToolbarItem(placement: .navigationBarTrailing) { trailingToolbarContent }
-		}
-		.safeAreaInset(edge: .bottom) { bottomBar }
+		.searchable(text: $searchQuery, prompt: "Search")
+		.toolbar { toolbarLeading }
+		.toolbar { toolbarTrailing }
+		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
 				.navigationViewStyle(.stack)
@@ -73,19 +91,33 @@ struct FileBrowserView: View {
 			}
 		}
 		.confirmationDialog(
-			"Delete \(pendingDeleteURLs.count) item\(pendingDeleteURLs.count == 1 ? "" : "s")?",
+			"Delete \(pendingDeleteURLs.count) item\(pendingDeleteURLs.count == 1 ? "" : "s")? This can't be undone.",
 			isPresented: $showingDeleteConfirmation,
 			titleVisibility: .visible
 		) {
 			Button("Delete", role: .destructive) {
 				let urls = pendingDeleteURLs
 				Task {
-					await viewModel.delete(urls, useTrash: settings.useTrash, trash: trash)
+					await viewModel.delete(urls)
 					viewModel.endSelecting()
 				}
 			}
 			Button("Cancel", role: .cancel) {}
 		}
+		.popover(isPresented: $showingDisks) {
+			NavigationView { DisksFlyoutView() }.navigationViewStyle(.stack)
+		}
+		.popover(isPresented: $showingBookmarks) {
+			NavigationView { BookmarksFlyoutView() }.navigationViewStyle(.stack)
+		}
+		.popover(isPresented: $showingRecents) {
+			NavigationView { RecentsFlyoutView() }.navigationViewStyle(.stack)
+		}
+		.popover(isPresented: $showingSettings) {
+			SettingsView()
+		}
+		.onChange(of: searchQuery) { _ in scheduleRootSearchIfNeeded() }
+		.onChange(of: searchScope) { _ in scheduleRootSearchIfNeeded() }
 		.task {
 			viewModel.includeHidden = settings.showHiddenFiles
 			viewModel.sortDescriptor = settings.sortDescriptor
@@ -102,9 +134,121 @@ struct FileBrowserView: View {
 		.errorAlert($viewModel.errorMessage)
 	}
 
+	private var isSearchActive: Bool {
+		!searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+	}
+
 	private var filteredNodes: [FileNode] {
 		guard !searchQuery.isEmpty else { return viewModel.nodes }
 		return viewModel.nodes.filter { $0.name.localizedCaseInsensitiveContains(searchQuery) }
+	}
+
+	/// A single hidden `NavigationLink` driving programmatic push for "Go to Path" —
+	/// `Alertinator.prompt`'s completion isn't inside a `NavigationLink` builder, so the
+	/// push has to be wired up this way instead.
+	private var navigationLinks: some View {
+		NavigationLink(
+			destination: goToPathDestination,
+			isActive: Binding(get: { goToPathTarget != nil }, set: { if !$0 { goToPathTarget = nil } })
+		) {
+			EmptyView()
+		}
+	}
+
+	@ViewBuilder
+	private var goToPathDestination: some View {
+		if let goToPathTarget {
+			FileBrowserView(rootURL: goToPathTarget)
+		} else {
+			EmptyView()
+		}
+	}
+
+	// MARK: - Empty / search states
+
+	@ViewBuilder
+	private var emptyStateContent: some View {
+		if viewModel.loadErrorMessage != nil {
+			EmptyStateView(
+				icon: "lock",
+				title: "No Access",
+				message: "Filzer can't read this location. Try Disks or Bookmarks to get to somewhere accessible."
+			)
+		} else {
+			EmptyStateView(icon: "folder", title: "This Folder Is Empty")
+		}
+	}
+
+	@ViewBuilder
+	private var searchResultsContent: some View {
+		VStack(spacing: 0) {
+			Picker("Scope", selection: $searchScope) {
+				ForEach(SearchScope.allCases) { scope in
+					Text(scope.rawValue).tag(scope)
+				}
+			}
+			.pickerStyle(.segmented)
+			.padding(.horizontal)
+			.padding(.vertical, 8)
+
+			switch searchScope {
+			case .thisFolder:
+				if filteredNodes.isEmpty {
+					EmptyStateView(icon: "magnifyingglass", title: "No Results")
+				} else {
+					List { ForEach(filteredNodes) { row(for: $0) } }
+						.listStyle(.plain)
+				}
+			case .root:
+				if isSearchingRoot {
+					ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+				} else if searchResults.isEmpty {
+					EmptyStateView(icon: "magnifyingglass", title: "No Results")
+				} else {
+					List { ForEach(searchResults) { row(for: $0) } }
+						.listStyle(.plain)
+				}
+			}
+		}
+	}
+
+	private func scheduleRootSearchIfNeeded() {
+		searchTask?.cancel()
+		guard searchScope == .root, isSearchActive else {
+			searchResults = []
+			isSearchingRoot = false
+			return
+		}
+		let query = searchQuery
+		let root = searchRootURL
+		let includeHidden = settings.showHiddenFiles
+		isSearchingRoot = true
+		searchTask = Task {
+			try? await Task.sleep(nanoseconds: 300_000_000)
+			guard !Task.isCancelled else { return }
+			do {
+				let results = try await FileSystem.current.search(root: root, query: query, includeHidden: includeHidden)
+				guard !Task.isCancelled else { return }
+				searchResults = results
+			} catch {
+				if !Task.isCancelled { viewModel.errorMessage = error.localizedDescription }
+			}
+			isSearchingRoot = false
+		}
+	}
+
+	/// The nearest known accessible root above (or at) `rootURL` — Filzer's own
+	/// container, or whichever bookmarked external folder contains it. Recursive search
+	/// from the literal device root would always be empty (a sandboxed app can't even
+	/// list "/"), so "Root" scope searches from here instead.
+	private var searchRootURL: URL {
+		let home = URL(fileURLWithPath: NSHomeDirectory())
+		if rootURL.path.hasPrefix(home.path) { return home }
+		for entry in bookmarks.entries {
+			let resolved = bookmarks.resolvedURL(for: entry)
+			if rootURL.path.hasPrefix(resolved.path) { return resolved }
+		}
+		return rootURL
 	}
 
 	// MARK: - Content
@@ -236,71 +380,97 @@ struct FileBrowserView: View {
 		)
 	}
 
-	// MARK: - Bottom bar
+	// MARK: - Toolbar
 
-	@ViewBuilder
-	private var bottomBar: some View {
-		if viewModel.isSelecting {
-			SelectionToolbar(
-				selectionCount: viewModel.selection.count,
-				onCopy: {
-					clipboard.set(Array(viewModel.selection), operation: .copy)
-					viewModel.endSelecting()
-				},
-				onMove: {
-					clipboard.set(Array(viewModel.selection), operation: .move)
-					viewModel.endSelecting()
-				},
-				onCompress: {
-					let urls = Array(viewModel.selection)
-					Task {
-						await viewModel.compress(urls)
-						viewModel.endSelecting()
-					}
-				},
-				onShare: { presentMultiShareSheet(for: Array(viewModel.selection)) },
-				onDelete: {
-					pendingDeleteURLs = Array(viewModel.selection)
-					showingDeleteConfirmation = true
-				}
-			)
-		} else if !clipboard.isEmpty, let payload = clipboard.payload {
-			PasteboardBanner(
-				count: payload.urls.count,
-				operation: payload.operation,
-				onPaste: { Task { await viewModel.paste(clipboard: clipboard) } },
-				onClear: { clipboard.clear() }
-			)
+	@ToolbarContentBuilder
+	private var toolbarLeading: some ToolbarContent {
+		ToolbarItem(placement: .navigationBarLeading) {
+			leadingToolbarContent
 		}
 	}
 
-	// MARK: - Toolbar
+	@ToolbarContentBuilder
+	private var toolbarTrailing: some ToolbarContent {
+		ToolbarItem(placement: .navigationBarTrailing) {
+			trailingToolbarContent
+		}
+	}
 
 	@ViewBuilder
 	private var leadingToolbarContent: some View {
 		if viewModel.isSelecting {
 			Button("Cancel") { viewModel.endSelecting() }
-		} else {
-			Button("Select") { viewModel.isSelecting = true }
+		} else if isRoot {
+			HStack(spacing: 18) {
+				Button { showingDisks = true } label: { Image(systemName: "externaldrive") }
+				Button { showingBookmarks = true } label: { Image(systemName: "bookmark") }
+				Button { showingRecents = true } label: { Image(systemName: "clock") }
+				Button { showingSettings = true } label: { Image(systemName: "gearshape") }
+			}
 		}
 	}
 
 	@ViewBuilder
 	private var trailingToolbarContent: some View {
 		if viewModel.isSelecting {
-			Button(viewModel.selection.count == filteredNodes.count ? "Deselect All" : "Select All") {
-				if viewModel.selection.count == filteredNodes.count {
-					viewModel.selection.removeAll()
-				} else {
-					viewModel.selection = Set(filteredNodes.map(\.url))
+			HStack(spacing: 18) {
+				Button(viewModel.selection.count == filteredNodes.count ? "Deselect All" : "Select All") {
+					if viewModel.selection.count == filteredNodes.count {
+						viewModel.selection.removeAll()
+					} else {
+						viewModel.selection = Set(filteredNodes.map(\.url))
+					}
 				}
+				batchActionsMenu
 			}
 		} else {
 			HStack(spacing: 18) {
+				Button("Select") { viewModel.isSelecting = true }
 				sortMenu
 				addMenu
 			}
 		}
+	}
+
+	private var batchActionsMenu: some View {
+		Menu {
+			Button {
+				clipboard.set(Array(viewModel.selection), operation: .copy)
+				viewModel.endSelecting()
+			} label: {
+				Label("Copy", systemImage: "doc.on.doc")
+			}
+			Button {
+				clipboard.set(Array(viewModel.selection), operation: .move)
+				viewModel.endSelecting()
+			} label: {
+				Label("Move", systemImage: "folder")
+			}
+			Button {
+				let urls = Array(viewModel.selection)
+				Task {
+					await viewModel.compress(urls)
+					viewModel.endSelecting()
+				}
+			} label: {
+				Label("Compress", systemImage: "doc.zipper")
+			}
+			Button {
+				presentMultiShareSheet(for: Array(viewModel.selection))
+			} label: {
+				Label("Share", systemImage: "square.and.arrow.up")
+			}
+			Divider()
+			Button(role: .destructive) {
+				pendingDeleteURLs = Array(viewModel.selection)
+				showingDeleteConfirmation = true
+			} label: {
+				Label("Delete", systemImage: "trash")
+			}
+		} label: {
+			Image(systemName: "ellipsis.circle")
+		}
+		.disabled(viewModel.selection.isEmpty)
 	}
 
 	private var sortMenu: some View {
@@ -365,6 +535,12 @@ struct FileBrowserView: View {
 					Label("Paste \(clipboard.count) Item\(clipboard.count == 1 ? "" : "s")", systemImage: "doc.on.clipboard")
 				}
 			}
+			Divider()
+			Button {
+				promptGoToPath()
+			} label: {
+				Label("Go to Path\u{2026}", systemImage: "arrow.forward.to.line")
+			}
 		} label: {
 			Image(systemName: "plus.circle")
 		}
@@ -390,6 +566,13 @@ struct FileBrowserView: View {
 		Alertinator.shared.prompt(title: "Rename", placeholder: "Name", text: node.name) { name in
 			guard let name, !name.isEmpty, name != node.name else { return }
 			await viewModel.rename(node, to: name)
+		}
+	}
+
+	private func promptGoToPath() {
+		Alertinator.shared.prompt(title: "Go to Path", placeholder: "/path/to/folder", text: rootURL.path) { path in
+			guard let path, !path.isEmpty else { return }
+			goToPathTarget = URL(fileURLWithPath: path)
 		}
 	}
 }

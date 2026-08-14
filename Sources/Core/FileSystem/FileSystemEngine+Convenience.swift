@@ -102,6 +102,22 @@ extension FileSystemEngine {
 		try await expectVolume(.volumeInfo(url))
 	}
 
+	/// Ensures `url` is addressable as a real local `file://` URL, downloading remote
+	/// content to a temporary file first when needed. For any consumer that has to
+	/// bypass `FileSystemEngine` and hand a URL straight to a system framework (AVKit,
+	/// WKWebView, `sqlite3_open`, a third-party archive library) — see
+	/// `ViewerKind.requiresLocalFile`. The caller owns cleanup of the returned file
+	/// when `isTemporary` is true.
+	func materializeLocally(_ url: URL) async throws -> (url: URL, isTemporary: Bool) {
+		guard RemoteURL.isRemote(url) else { return (url, false) }
+		let data = try await readFile(at: url)
+		let scratchDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+		try FileManager.default.createDirectory(at: scratchDirectory, withIntermediateDirectories: true)
+		let localURL = scratchDirectory.appendingPathComponent(url.lastPathComponent)
+		try data.write(to: localURL, options: .atomic)
+		return (localURL, true)
+	}
+
 	// MARK: - Result unwrapping
 
 	private func expectNodes(_ op: FileOperation) async throws -> [FileNode] {

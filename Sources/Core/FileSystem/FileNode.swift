@@ -77,8 +77,43 @@ struct FileNode: Identifiable, Hashable {
 	}
 }
 
-/// A single entry inside a browsable archive (currently: zip), reported without
-/// extracting the archive to disk.
+/// Synthesizes nodes for remote (WebDAV/FTP/SMB) items, which have no POSIX
+/// permissions or ownership — `SandboxedFileSystemEngine` is the only caller.
+extension FileNode {
+	static func remote(url: URL, item: RemoteItem) -> FileNode {
+		FileNode(
+			url: url, name: item.name, kind: item.isDirectory ? .directory : .file,
+			size: item.size,
+			createdAt: nil,
+			modifiedAt: item.modifiedAt,
+			posixPermissions: item.isDirectory ? 0o755 : 0o644,
+			ownerAccountName: nil,
+			groupOwnerAccountName: nil,
+			symbolicLinkDestination: nil,
+			isHidden: item.name.hasPrefix(".")
+		)
+	}
+
+	/// A connection's own root — always a directory, and with no listable parent to
+	/// stat it against (unlike every other remote path).
+	static func remoteRoot(url: URL) -> FileNode {
+		let name = url.lastPathComponent
+		return FileNode(
+			url: url, name: name.isEmpty ? "/" : name, kind: .directory,
+			size: 0,
+			createdAt: nil,
+			modifiedAt: nil,
+			posixPermissions: 0o755,
+			ownerAccountName: nil,
+			groupOwnerAccountName: nil,
+			symbolicLinkDestination: nil,
+			isHidden: false
+		)
+	}
+}
+
+/// A single entry inside a browsable archive (zip, rar, tar, gzip, bzip2, xz, 7z),
+/// reported without extracting the archive to disk.
 struct ArchiveEntry: Identifiable, Hashable {
 	let path: String
 	let isDirectory: Bool

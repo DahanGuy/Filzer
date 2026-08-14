@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// Filza's "Zip Viewer" — browses a `.zip`'s contents as a virtual folder tree without
-/// extracting the whole archive to disk. This is just the root-level entry point
-/// `FileViewerRoute` pushes to; the actual browsing happens in `ArchiveBrowserLevelView`,
-/// which recurses into itself as the user drills into nested folders.
+/// Filza's "Zip Viewer", generalized to every format `ArchiveFormat` recognizes
+/// (zip/rar/tar/gzip/bzip2/xz/7z) — browses an archive's contents as a virtual folder
+/// tree without extracting the whole thing to disk. This is just the root-level entry
+/// point `FileViewerRoute` pushes to; the actual browsing happens in
+/// `ArchiveBrowserLevelView`, which recurses into itself as the user drills into
+/// nested folders.
 struct ArchiveBrowserView: View {
 	let url: URL
 
@@ -12,8 +14,8 @@ struct ArchiveBrowserView: View {
 	}
 }
 
-/// One level of a zip's virtual folder tree: everything whose path sits directly under
-/// `prefix`. Files are only ever pulled out of the archive (to a scratch temp
+/// One level of an archive's virtual folder tree: everything whose path sits directly
+/// under `prefix`. Files are only ever pulled out of the archive (to a scratch temp
 /// directory) when the user taps one; folders just recurse into another level of this
 /// same view with a deeper `prefix`.
 struct ArchiveBrowserLevelView: View {
@@ -143,14 +145,14 @@ struct ArchiveBrowserLevelView: View {
 		}
 	}
 
-	/// Extracts the whole archive into a sibling folder named after the zip (minus its
-	/// extension), e.g. `archive.zip` -> `archive/`.
+	/// Extracts the whole archive into a sibling folder named after it (minus its
+	/// extension(s)), e.g. `archive.tar.gz` -> `archive/`.
 	private func extractAll() {
 		isExtractingAll = true
 		Task {
 			defer { isExtractingAll = false }
 			do {
-				let folderName = archiveURL.deletingPathExtension().lastPathComponent
+				let folderName = ArchiveFormat.baseName(for: archiveURL)
 				let destination = archiveURL.deletingLastPathComponent().appendingPathComponent(folderName)
 				try await FileSystem.current.extractArchive(archiveURL, toDirectory: destination)
 				extractedFolderName = destination.lastPathComponent

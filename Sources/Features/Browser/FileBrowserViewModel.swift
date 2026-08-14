@@ -9,6 +9,11 @@ import Foundation
 final class FileBrowserViewModel: ObservableObject {
 	@Published private(set) var nodes: [FileNode] = []
 	@Published var isLoading = false
+	/// Set only by `reload()` — shown inline as an empty-state message, never as a
+	/// popup (navigating into an inaccessible sandboxed path is an expected, frequent
+	/// event here, not something worth interrupting the user for).
+	@Published private(set) var loadErrorMessage: String?
+	/// Set by mutating actions (create/rename/delete/paste/…) — shown via `.errorAlert`.
 	@Published var errorMessage: String?
 	@Published var isSelecting = false
 	@Published var selection: Set<URL> = []
@@ -27,8 +32,10 @@ final class FileBrowserViewModel: ObservableObject {
 		do {
 			let children = try await FileSystem.current.listDirectory(at: rootURL, includeHidden: includeHidden)
 			nodes = children.sorted(by: sortDescriptor.comparator())
+			loadErrorMessage = nil
 		} catch {
-			errorMessage = error.localizedDescription
+			nodes = []
+			loadErrorMessage = error.localizedDescription
 		}
 	}
 
@@ -74,13 +81,13 @@ final class FileBrowserViewModel: ObservableObject {
 		await run { try await FileSystem.current.createHardLink(at: self.rootURL.appendingPathComponent(name), destination: target) }
 	}
 
-	func delete(_ urls: [URL], useTrash: Bool, trash: TrashStore) async {
+	/// Filzer never keeps its own Trash — deletion is permanent for anything in its own
+	/// sandbox. For an externally-bookmarked location, whatever the OS/document
+	/// provider does with a deleted item (e.g. iCloud Drive's own "Recently Deleted",
+	/// visible only in the system Files app) is outside Filzer's control or visibility.
+	func delete(_ urls: [URL]) async {
 		do {
-			if useTrash {
-				try await trash.moveToTrash(urls)
-			} else {
-				try await FileSystem.current.delete(urls)
-			}
+			try await FileSystem.current.delete(urls)
 			selection.subtract(urls)
 			await reload()
 		} catch {
@@ -104,15 +111,11 @@ final class FileBrowserViewModel: ObservableObject {
 		}
 	}
 
-	/// Extracts a zip in-place into a new sibling folder named after the archive.
+	/// Extracts an archive in-place into a new sibling folder named after it — for any
+	/// format `ArchiveFormat` recognizes, not just `.zip`.
 	func extractHere(_ node: FileNode) async {
-		let baseName = node.url.deletingPathExtension().lastPathComponent
-		var destination = rootURL.appendingPathComponent(baseName)
-		var counter = 2
-		while FileManager.default.fileExists(atPath: destination.path) {
-			destination = rootURL.appendingPathComponent("\(baseName) \(counter)")
-			counter += 1
-		}
+		let name = Self.uniqueFolderName(baseName: ArchiveFormat.baseName(for: node.url), existingNames: Set(nodes.map(\.name)))
+		let destination = rootURL.appendingPathComponent(name)
 		await run { try await FileSystem.current.extractArchive(node.url, toDirectory: destination) }
 	}
 
@@ -128,7 +131,8 @@ final class FileBrowserViewModel: ObservableObject {
 	func compress(_ urls: [URL]) async {
 		guard !urls.isEmpty else { return }
 		let base = urls.count == 1 ? urls[0].deletingPathExtension().lastPathComponent : "Archive"
-		let destination = Self.uniqueURL(in: rootURL, baseName: base, extension: "zip")
+		let name = Self.uniqueFileName(baseName: base, extension: "zip", existingNames: Set(nodes.map(\.name)))
+		let destination = rootURL.appendingPathComponent(name)
 		await run { try await FileSystem.current.compressItems(urls, to: destination) }
 	}
 
@@ -160,11 +164,21 @@ final class FileBrowserViewModel: ObservableObject {
 		return candidate
 	}
 
-	private static func uniqueURL(in directory: URL, baseName: String, extension ext: String) -> URL {
-		var candidate = directory.appendingPathComponent(baseName).appendingPathExtension(ext)
+	private static func uniqueFileName(baseName: String, extension ext: String, existingNames: Set<String>) -> String {
+		var candidate = "\(baseName).\(ext)"
 		var counter = 2
-		while FileManager.default.fileExists(atPath: candidate.path) {
-			candidate = directory.appendingPathComponent("\(baseName) \(counter)").appendingPathExtension(ext)
+		while existingNames.contains(candidate) {
+			candidate = "\(baseName) \(counter).\(ext)"
+			counter += 1
+		}
+		return candidate
+	}
+
+	private static func uniqueFolderName(baseName: String, existingNames: Set<String>) -> String {
+		var candidate = baseName
+		var counter = 2
+		while existingNames.contains(candidate) {
+			candidate = "\(baseName) \(counter)"
 			counter += 1
 		}
 		return candidate
