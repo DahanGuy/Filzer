@@ -7,9 +7,10 @@ import UniformTypeIdentifiers
 /// batch actions, and every per-item action via context menu / swipe. Pushes a fresh
 /// instance of itself for subfolders and `FileViewerRoute` for files.
 ///
-/// `isRoot` marks the single top-level instance (`RootBrowserShell`'s own root, browsing
-/// "/"): only that instance shows the Disks/Bookmarks/Recents/Settings flyout buttons — every
-/// pushed subfolder is a plain instance with `isRoot == false`.
+/// Every instance (root or a pushed subfolder) can open the Disks/Bookmarks/Recents/
+/// Settings flyouts — only `isRoot` (the single top-level instance `RootBrowserShell`
+/// owns) shows them on the leading side, alongside the system back button everywhere
+/// else; see `leadingToolbarContent`/`trailingToolbarContent`.
 struct FileBrowserView: View {
 	let rootURL: URL
 	var displayName: String? = nil
@@ -20,18 +21,22 @@ struct FileBrowserView: View {
 	@EnvironmentObject private var bookmarks: BookmarksStore
 
 	@StateObject private var viewModel: FileBrowserViewModel
+	@Environment(\.isSearching) private var isSearching
 	@State private var searchQuery = ""
 	@State private var searchScope: SearchScope = .thisFolder
 	@State private var searchResults: [FileNode] = []
 	@State private var isSearchingRoot = false
 	@State private var searchTask: Task<Void, Never>?
+	@State private var isPathInputMode = false
+	@State private var pathSuggestions: [String] = []
+	@State private var pathSuggestionsTask: Task<Void, Never>?
 
 	@State private var showingImporter = false
 	@State private var infoNode: FileNode?
 	@State private var openAsTarget: OpenAsTarget?
 	@State private var pendingDeleteURLs: [URL] = []
 	@State private var showingDeleteConfirmation = false
-	@State private var goToPathTarget: URL?
+	@State private var pendingNavigation: PendingNavigation?
 
 	@State private var showingDisks = false
 	@State private var showingBookmarks = false
@@ -42,6 +47,12 @@ struct FileBrowserView: View {
 		case thisFolder = "This Folder"
 		case root = "Root"
 		var id: String { rawValue }
+	}
+
+	private struct PendingNavigation: Identifiable {
+		let url: URL
+		let displayName: String?
+		var id: URL { url }
 	}
 
 	init(rootURL: URL, displayName: String? = nil, isRoot: Bool = false) {
@@ -59,7 +70,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearchActive {
+			if isSearching || isPathInputMode {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -105,10 +116,14 @@ struct FileBrowserView: View {
 			Button("Cancel", role: .cancel) {}
 		}
 		.popover(isPresented: $showingDisks) {
-			NavigationView { DisksFlyoutView() }.navigationViewStyle(.stack)
+			NavigationView {
+				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1) })
+			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingBookmarks) {
-			NavigationView { BookmarksFlyoutView() }.navigationViewStyle(.stack)
+			NavigationView {
+				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1) })
+			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingRecents) {
 			NavigationView { RecentsFlyoutView() }.navigationViewStyle(.stack)
@@ -116,8 +131,20 @@ struct FileBrowserView: View {
 		.popover(isPresented: $showingSettings) {
 			SettingsView()
 		}
-		.onChange(of: searchQuery) { _ in scheduleRootSearchIfNeeded() }
+		.onChange(of: searchQuery) { _ in
+			if isPathInputMode {
+				schedulePathSuggestions()
+			} else {
+				scheduleRootSearchIfNeeded()
+			}
+		}
 		.onChange(of: searchScope) { _ in scheduleRootSearchIfNeeded() }
+		.onChange(of: isSearching) { newValue in
+			if !newValue { resetPathInputMode() }
+		}
+		.onSubmit(of: .search) {
+			if isPathInputMode { navigate(to: URL(fileURLWithPath: searchQuery), displayName: nil) }
+		}
 		.task {
 			viewModel.includeHidden = settings.showHiddenFiles
 			viewModel.sortDescriptor = settings.sortDescriptor
@@ -143,25 +170,33 @@ struct FileBrowserView: View {
 		return viewModel.nodes.filter { $0.name.localizedCaseInsensitiveContains(searchQuery) }
 	}
 
-	/// A single hidden `NavigationLink` driving programmatic push for "Go to Path" —
-	/// `Alertinator.prompt`'s completion isn't inside a `NavigationLink` builder, so the
-	/// push has to be wired up this way instead.
+	/// A single hidden `NavigationLink` driving programmatic push — used by "Go to
+	/// Path", the search bar's path-input mode, and by tapping a folder inside the
+	/// Disks/Bookmarks flyouts (which dismiss themselves and hand the target back here
+	/// via `onNavigate`, so the folder opens in *this* screen's own stack instead of
+	/// nesting inside the flyout's).
 	private var navigationLinks: some View {
 		NavigationLink(
-			destination: goToPathDestination,
-			isActive: Binding(get: { goToPathTarget != nil }, set: { if !$0 { goToPathTarget = nil } })
+			destination: pendingNavigationDestination,
+			isActive: Binding(get: { pendingNavigation != nil }, set: { if !$0 { pendingNavigation = nil } })
 		) {
 			EmptyView()
 		}
 	}
 
 	@ViewBuilder
-	private var goToPathDestination: some View {
-		if let goToPathTarget {
-			FileBrowserView(rootURL: goToPathTarget)
+	private var pendingNavigationDestination: some View {
+		if let pendingNavigation {
+			FileBrowserView(rootURL: pendingNavigation.url, displayName: pendingNavigation.displayName)
 		} else {
 			EmptyView()
 		}
+	}
+
+	private func navigate(to url: URL, displayName: String?) {
+		isPathInputMode = false
+		searchQuery = ""
+		pendingNavigation = PendingNavigation(url: url, displayName: displayName)
 	}
 
 	// MARK: - Empty / search states
@@ -169,11 +204,7 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var emptyStateContent: some View {
 		if viewModel.loadErrorMessage != nil {
-			EmptyStateView(
-				icon: "lock",
-				title: "No Access",
-				message: "Filzer can't read this location. Try Disks or Bookmarks to get to somewhere accessible."
-			)
+			EmptyStateView(icon: "lock", title: "No Access")
 		} else {
 			EmptyStateView(icon: "folder", title: "This Folder Is Empty")
 		}
@@ -182,33 +213,117 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var searchResultsContent: some View {
 		VStack(spacing: 0) {
-			Picker("Scope", selection: $searchScope) {
-				ForEach(SearchScope.allCases) { scope in
-					Text(scope.rawValue).tag(scope)
+			HStack(spacing: 12) {
+				if isPathInputMode {
+					Button {
+						UIPasteboard.general.string = rootURL.path
+					} label: {
+						Image(systemName: "doc.on.doc")
+					}
+					Text(searchQuery.isEmpty ? rootURL.path : searchQuery)
+						.font(.footnote)
+						.foregroundStyle(.secondary)
+						.lineLimit(1)
+						.truncationMode(.head)
+					Spacer()
+				} else {
+					Picker("Scope", selection: $searchScope) {
+						ForEach(SearchScope.allCases) { scope in
+							Text(scope.rawValue).tag(scope)
+						}
+					}
+					.pickerStyle(.segmented)
+				}
+				Button {
+					togglePathInputMode()
+				} label: {
+					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
 				}
 			}
-			.pickerStyle(.segmented)
 			.padding(.horizontal)
 			.padding(.vertical, 8)
 
-			switch searchScope {
-			case .thisFolder:
-				if filteredNodes.isEmpty {
-					EmptyStateView(icon: "magnifyingglass", title: "No Results")
-				} else {
-					List { ForEach(filteredNodes) { row(for: $0) } }
-						.listStyle(.plain)
-				}
-			case .root:
-				if isSearchingRoot {
-					ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-				} else if searchResults.isEmpty {
-					EmptyStateView(icon: "magnifyingglass", title: "No Results")
-				} else {
-					List { ForEach(searchResults) { row(for: $0) } }
-						.listStyle(.plain)
+			if isPathInputMode {
+				pathSuggestionsContent
+			} else {
+				switch searchScope {
+				case .thisFolder:
+					if filteredNodes.isEmpty {
+						EmptyStateView(icon: "magnifyingglass", title: "No Results")
+					} else {
+						List { ForEach(filteredNodes) { row(for: $0) } }
+							.listStyle(.plain)
+					}
+				case .root:
+					if isSearchingRoot {
+						ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+					} else if searchResults.isEmpty {
+						EmptyStateView(icon: "magnifyingglass", title: "No Results")
+					} else {
+						List { ForEach(searchResults) { row(for: $0) } }
+							.listStyle(.plain)
+					}
 				}
 			}
+		}
+	}
+
+	@ViewBuilder
+	private var pathSuggestionsContent: some View {
+		if pathSuggestions.isEmpty {
+			EmptyStateView(icon: "folder", title: "No Matching Folders")
+		} else {
+			List(pathSuggestions, id: \.self) { suggestion in
+				Button {
+					navigate(to: URL(fileURLWithPath: suggestion), displayName: nil)
+				} label: {
+					Label(suggestion, systemImage: "folder")
+				}
+			}
+			.listStyle(.plain)
+		}
+	}
+
+	private func togglePathInputMode() {
+		isPathInputMode.toggle()
+		if isPathInputMode {
+			searchQuery = rootURL.path
+			schedulePathSuggestions()
+		} else {
+			searchQuery = ""
+			pathSuggestions = []
+		}
+	}
+
+	private func resetPathInputMode() {
+		isPathInputMode = false
+		pathSuggestions = []
+	}
+
+	/// Lists the parent of whatever path is currently typed and keeps folders whose
+	/// name starts with the partial last segment — an inaccessible parent silently
+	/// yields no suggestions rather than surfacing an error popup.
+	private func schedulePathSuggestions() {
+		pathSuggestionsTask?.cancel()
+		let typed = searchQuery
+		let includeHidden = settings.showHiddenFiles
+		pathSuggestionsTask = Task {
+			try? await Task.sleep(nanoseconds: 200_000_000)
+			guard !Task.isCancelled else { return }
+			let parentPath = (typed as NSString).deletingLastPathComponent
+			let partial = (typed as NSString).lastPathComponent
+			let parentURL = URL(fileURLWithPath: parentPath.isEmpty ? "/" : parentPath)
+			guard let children = try? await FileSystem.current.listDirectory(at: parentURL, includeHidden: includeHidden) else {
+				guard !Task.isCancelled else { return }
+				pathSuggestions = []
+				return
+			}
+			guard !Task.isCancelled else { return }
+			let matches = children
+				.filter { $0.isDirectory && (partial.isEmpty || $0.name.lowercased().hasPrefix(partial.lowercased())) }
+				.map { parentURL.appendingPathComponent($0.name).path }
+				.sorted()
+			pathSuggestions = Array(matches.prefix(30))
 		}
 	}
 
@@ -270,22 +385,29 @@ struct FileBrowserView: View {
 	}
 
 	@ViewBuilder
+	private func destination(for node: FileNode) -> some View {
+		if node.isSymbolicLink {
+			SymlinkTargetRoute(node: node)
+		} else if node.isDirectory {
+			FileBrowserView(rootURL: node.url)
+		} else {
+			FileViewerRoute(node: node)
+		}
+	}
+
+	@ViewBuilder
 	private func row(for node: FileNode) -> some View {
 		Group {
 			if viewModel.isSelecting {
 				Button {
 					viewModel.toggleSelection(of: node)
 				} label: {
-					FileRow(node: node, fontSize: settings.fontSize, selection: viewModel.selection.contains(node.url))
+					FileRow(node: node, selection: viewModel.selection.contains(node.url))
 				}
 				.buttonStyle(.plain)
-			} else if node.isDirectory {
-				NavigationLink(destination: FileBrowserView(rootURL: node.url)) {
-					FileRow(node: node, fontSize: settings.fontSize)
-				}
 			} else {
-				NavigationLink(destination: FileViewerRoute(node: node)) {
-					FileRow(node: node, fontSize: settings.fontSize)
+				NavigationLink(destination: destination(for: node)) {
+					FileRow(node: node)
 				}
 			}
 		}
@@ -320,12 +442,8 @@ struct FileBrowserView: View {
 					gridCellContent(node)
 				}
 				.buttonStyle(.plain)
-			} else if node.isDirectory {
-				NavigationLink(destination: FileBrowserView(rootURL: node.url)) {
-					gridCellContent(node)
-				}
 			} else {
-				NavigationLink(destination: FileViewerRoute(node: node)) {
+				NavigationLink(destination: destination(for: node)) {
 					gridCellContent(node)
 				}
 			}
@@ -410,6 +528,11 @@ struct FileBrowserView: View {
 		}
 	}
 
+	/// Root's trailing side has no spare room next to its 4 leading icons, so
+	/// Select/Add/Sort collapse into one explicit menu. A pushed subfolder frees the
+	/// leading side down to just the back button, so it keeps Select/Add/Sort as
+	/// separate items and gains one more menu — for the Disks/Bookmarks/Recents/
+	/// Settings flyouts that root's leading icons would otherwise provide.
 	@ViewBuilder
 	private var trailingToolbarContent: some View {
 		if viewModel.isSelecting {
@@ -423,11 +546,14 @@ struct FileBrowserView: View {
 				}
 				batchActionsMenu
 			}
+		} else if isRoot {
+			rootActionsMenu
 		} else {
 			HStack(spacing: 18) {
 				Button("Select") { viewModel.isSelecting = true }
 				sortMenu
 				addMenu
+				locationsMenu
 			}
 		}
 	}
@@ -473,34 +599,68 @@ struct FileBrowserView: View {
 		.disabled(viewModel.selection.isEmpty)
 	}
 
-	private var sortMenu: some View {
+	/// Root's single trailing menu: Select is a plain action, Add/Sort are nested
+	/// submenus with identical content to the subfolder toolbar's own `addMenu`/
+	/// `sortMenu` below.
+	private var rootActionsMenu: some View {
 		Menu {
-			Picker("Sort By", selection: sortFieldBinding) {
-				ForEach(FileSortField.allCases) { field in
-					Text(field.title).tag(field)
-				}
-			}
 			Button {
-				settings.sortDescriptor.ascending.toggle()
+				viewModel.isSelecting = true
 			} label: {
-				Label(
-					settings.sortDescriptor.ascending ? "Ascending" : "Descending",
-					systemImage: settings.sortDescriptor.ascending ? "arrow.up" : "arrow.down"
-				)
+				Label("Select", systemImage: "checkmark.circle")
 			}
-			Divider()
-			Button {
-				settings.viewMode = settings.viewMode == .list ? .grid : .list
+			Menu {
+				addMenuItems
 			} label: {
-				Label(settings.viewMode == .list ? "Grid View" : "List View", systemImage: settings.viewMode == .list ? "square.grid.2x2" : "list.bullet")
+				Label("Add", systemImage: "plus.circle")
 			}
-			Button {
-				settings.showHiddenFiles.toggle()
+			Menu {
+				sortMenuItems
 			} label: {
-				Label(settings.showHiddenFiles ? "Hide Hidden Files" : "Show Hidden Files", systemImage: "eye")
+				Label("Sort", systemImage: "arrow.up.arrow.down.circle")
 			}
 		} label: {
+			Image(systemName: "ellipsis.circle")
+		}
+	}
+
+	/// A subfolder's extra trailing menu, standing in for the Disks/Bookmarks/Recents/
+	/// Settings icons root shows on its (here unavailable) leading side.
+	private var locationsMenu: some View {
+		Menu {
+			Button { showingDisks = true } label: { Label("Disks", systemImage: "externaldrive") }
+			Button { showingBookmarks = true } label: { Label("Bookmarks", systemImage: "bookmark") }
+			Button { showingRecents = true } label: { Label("Recents", systemImage: "clock") }
+			Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+		} label: {
+			Image(systemName: "ellipsis.circle")
+		}
+	}
+
+	private var sortMenu: some View {
+		Menu {
+			sortMenuItems
+		} label: {
 			Image(systemName: "arrow.up.arrow.down.circle")
+		}
+	}
+
+	/// Sort field + direction only — view mode (list/grid) and hidden-file visibility
+	/// are app-wide preferences that live in Settings, not per-folder sort options.
+	@ViewBuilder
+	private var sortMenuItems: some View {
+		Picker("Sort By", selection: sortFieldBinding) {
+			ForEach(FileSortField.allCases) { field in
+				Text(field.title).tag(field)
+			}
+		}
+		Button {
+			settings.sortDescriptor.ascending.toggle()
+		} label: {
+			Label(
+				settings.sortDescriptor.ascending ? "Ascending" : "Descending",
+				systemImage: settings.sortDescriptor.ascending ? "arrow.up" : "arrow.down"
+			)
 		}
 	}
 
@@ -513,36 +673,41 @@ struct FileBrowserView: View {
 
 	private var addMenu: some View {
 		Menu {
-			Button {
-				promptNewFolder()
-			} label: {
-				Label("New Folder", systemImage: "folder.badge.plus")
-			}
-			Button {
-				promptNewFile()
-			} label: {
-				Label("New File", systemImage: "doc.badge.plus")
-			}
-			Button {
-				showingImporter = true
-			} label: {
-				Label("Import\u{2026}", systemImage: "square.and.arrow.down")
-			}
-			if !clipboard.isEmpty {
-				Button {
-					Task { await viewModel.paste(clipboard: clipboard) }
-				} label: {
-					Label("Paste \(clipboard.count) Item\(clipboard.count == 1 ? "" : "s")", systemImage: "doc.on.clipboard")
-				}
-			}
-			Divider()
-			Button {
-				promptGoToPath()
-			} label: {
-				Label("Go to Path\u{2026}", systemImage: "arrow.forward.to.line")
-			}
+			addMenuItems
 		} label: {
 			Image(systemName: "plus.circle")
+		}
+	}
+
+	@ViewBuilder
+	private var addMenuItems: some View {
+		Button {
+			promptNewFolder()
+		} label: {
+			Label("New Folder", systemImage: "folder.badge.plus")
+		}
+		Button {
+			promptNewFile()
+		} label: {
+			Label("New File", systemImage: "doc.badge.plus")
+		}
+		Button {
+			showingImporter = true
+		} label: {
+			Label("Import\u{2026}", systemImage: "square.and.arrow.down")
+		}
+		if !clipboard.isEmpty {
+			Button {
+				Task { await viewModel.paste(clipboard: clipboard) }
+			} label: {
+				Label("Paste \(clipboard.count) Item\(clipboard.count == 1 ? "" : "s")", systemImage: "doc.on.clipboard")
+			}
+		}
+		Divider()
+		Button {
+			promptGoToPath()
+		} label: {
+			Label("Go to Path\u{2026}", systemImage: "arrow.forward.to.line")
 		}
 	}
 
@@ -572,7 +737,7 @@ struct FileBrowserView: View {
 	private func promptGoToPath() {
 		Alertinator.shared.prompt(title: "Go to Path", placeholder: "/path/to/folder", text: rootURL.path) { path in
 			guard let path, !path.isEmpty else { return }
-			goToPathTarget = URL(fileURLWithPath: path)
+			navigate(to: URL(fileURLWithPath: path), displayName: nil)
 		}
 	}
 }

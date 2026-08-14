@@ -1,11 +1,21 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
-/// The Bookmarks flyout — a reorderable list of pinned files/folders (in-sandbox, or
-/// externally picked via the document picker and labeled "External Location", matching
-/// Filza's "Add Location" convention). Each row resolves its live `FileNode` on appear
-/// so renamed/deleted targets are reflected instead of trusting stale data.
+/// The Bookmarks flyout — a reorderable list of pinned paths, added by typing a path
+/// (see `AddBookmarkView`) or from any row's context menu. Externally-picked "Added
+/// Folders" (via the document picker, needing a security-scoped bookmark) live in the
+/// Disks flyout instead — see `plainEntries` below for the split. Each row resolves
+/// its live `FileNode` on appear so renamed/deleted targets are reflected instead of
+/// trusting stale data.
 struct BookmarksFlyoutView: View {
+	/// The folder that was open in the presenting `FileBrowserView` — prefills
+	/// `AddBookmarkView`'s path field.
+	let currentPath: String
+	/// Called when a bookmarked *folder* is tapped, instead of pushing it inside this
+	/// flyout's own navigation stack — the presenter dismisses this popover and opens
+	/// the folder in its own (main) screen. File bookmarks are unaffected: they still
+	/// push a viewer within this flyout, matching "view then dismiss".
+	let onNavigate: (URL, String?) -> Void
+
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var bookmarks: BookmarksStore
 
@@ -13,23 +23,28 @@ struct BookmarksFlyoutView: View {
 	/// resolved; an id present with no node in `nodes` after resolution means the
 	/// bookmarked target is missing.
 	@State private var nodes: [UUID: FileNode] = [:]
-	@State private var showingAddLocation = false
-	@State private var errorMessage: String?
+	@State private var showingAddBookmark = false
+
+	/// Plain bookmarks only — externally-picked "Added Folders" (which carry a
+	/// security-scoped bookmark) are Disks' concern, not this screen's.
+	private var plainEntries: [BookmarkEntry] {
+		bookmarks.entries.filter { $0.securityScopedBookmarkData == nil }
+	}
 
 	var body: some View {
 		Group {
-			if bookmarks.entries.isEmpty {
+			if plainEntries.isEmpty {
 				EmptyStateView(
 					icon: "bookmark",
 					title: "No Bookmarks",
-					message: "Bookmark files and folders from their context menu, or add an external location below."
+					message: "Bookmark a path with the + button, or from any file's context menu."
 				)
 			} else {
 				List {
-					ForEach(bookmarks.entries) { entry in
+					ForEach(plainEntries) { entry in
 						row(for: entry)
 					}
-					.onMove(perform: bookmarks.move(fromOffsets:toOffset:))
+					.onMove(perform: move)
 				}
 			}
 		}
@@ -39,22 +54,32 @@ struct BookmarksFlyoutView: View {
 			ToolbarItem(placement: .navigationBarTrailing) {
 				HStack(spacing: 18) {
 					EditButton()
-					Button { showingAddLocation = true } label: { Image(systemName: "plus") }
+					Button { showingAddBookmark = true } label: { Image(systemName: "plus") }
 				}
 			}
 		}
-		.fileImporter(isPresented: $showingAddLocation, allowedContentTypes: [.folder]) { result in
-			Task { await addLocation(result: result) }
+		.sheet(isPresented: $showingAddBookmark) {
+			NavigationView { AddBookmarkView(initialPath: currentPath) }
+				.navigationViewStyle(.stack)
 		}
-		.errorAlert($errorMessage)
 	}
 
 	@ViewBuilder
 	private func row(for entry: BookmarkEntry) -> some View {
 		Group {
 			if let node = nodes[entry.id] {
-				NavigationLink(destination: destination(for: node, entry: entry)) {
-					FileRow(node: node)
+				if node.isDirectory {
+					Button {
+						onNavigate(node.url, entry.displayName)
+						dismiss()
+					} label: {
+						FileRow(node: node)
+					}
+					.buttonStyle(.plain)
+				} else {
+					NavigationLink(destination: FileViewerRoute(node: node)) {
+						FileRow(node: node)
+					}
 				}
 			} else {
 				missingRow(for: entry)
@@ -88,41 +113,17 @@ struct BookmarksFlyoutView: View {
 		}
 	}
 
-	@ViewBuilder
-	private func destination(for node: FileNode, entry: BookmarkEntry) -> some View {
-		if node.isDirectory {
-			FileBrowserView(rootURL: node.url, displayName: entry.displayName)
-		} else {
-			FileViewerRoute(node: node)
-		}
-	}
-
-	/// Resolves an entry's live `FileNode`, starting security-scoped access first when
-	/// the entry points outside Filzer's own sandbox container.
+	/// Resolves an entry's live `FileNode`.
 	private func resolveNode(for entry: BookmarkEntry) async {
-		let url = bookmarks.resolvedURL(for: entry)
-		let needsScopedAccess = entry.securityScopedBookmarkData != nil
-		let didStartAccessing = needsScopedAccess ? url.startAccessingSecurityScopedResource() : false
-		defer {
-			if didStartAccessing { url.stopAccessingSecurityScopedResource() }
-		}
-		nodes[entry.id] = try? await FileSystem.current.nodeInfo(at: url)
+		nodes[entry.id] = try? await FileSystem.current.nodeInfo(at: entry.url)
 	}
 
-	/// "Add Location" — Filza's term for pinning a folder the app has no innate access
-	/// to. The document picker grants a one-time security-scoped grant; the bookmark
-	/// data persisted here is what makes that grant durable across launches.
-	private func addLocation(result: Result<URL, Error>) async {
-		do {
-			let url = try result.get()
-			let didStartAccessing = url.startAccessingSecurityScopedResource()
-			defer {
-				if didStartAccessing { url.stopAccessingSecurityScopedResource() }
-			}
-			let bookmarkData = try SecurityScopedBookmark.makeBookmark(for: url)
-			bookmarks.add(url: url, displayName: "\(url.lastPathComponent) (External Location)", securityScopedBookmarkData: bookmarkData)
-		} catch {
-			errorMessage = error.localizedDescription
-		}
+	/// `.onMove` gives offsets within `plainEntries` (the filtered, visible
+	/// subsequence) — reorder that subsequence in memory, then hand the result to
+	/// `BookmarksStore` to merge back into the full array.
+	private func move(fromOffsets source: IndexSet, toOffset destination: Int) {
+		var reordered = plainEntries
+		reordered.move(fromOffsets: source, toOffset: destination)
+		bookmarks.reorderPlainEntries(to: reordered)
 	}
 }

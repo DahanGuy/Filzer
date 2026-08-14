@@ -63,6 +63,22 @@ final class BookmarksStore: ObservableObject {
 		save()
 	}
 
+	/// Reorders just the plain (non-externally-picked) bookmarks shown in the
+	/// Bookmarks flyout, leaving every "Added Folder" entry (shown in Disks instead,
+	/// `securityScopedBookmarkData != nil`) at its existing position in the full
+	/// underlying array — `.onMove` in a filtered `List` only knows filtered-list
+	/// offsets, so the reordered subsequence is merged back in by walking `entries`
+	/// and taking the next plain entry from `newPlainOrder` wherever one was.
+	func reorderPlainEntries(to newPlainOrder: [BookmarkEntry]) {
+		var remaining = newPlainOrder[...]
+		entries = entries.map { entry in
+			guard entry.securityScopedBookmarkData == nil, let next = remaining.first else { return entry }
+			remaining.removeFirst()
+			return next
+		}
+		save()
+	}
+
 	/// Resolves an externally-bookmarked entry back to a usable URL. Callers must wrap
 	/// filesystem access in `SecurityScopedBookmark.withSecurityScopedAccess` when
 	/// `securityScopedBookmarkData` is non-nil; in-sandbox entries need no such wrapping.

@@ -17,11 +17,6 @@ struct SettingsView: View {
 						Text("Grid").tag(ViewMode.grid)
 					}
 					.pickerStyle(.segmented)
-					Picker("Font Size", selection: $settings.fontSize) {
-						Text("Small").tag(RowFontSize.small)
-						Text("Normal").tag(RowFontSize.normal)
-					}
-					.pickerStyle(.segmented)
 				}
 
 				Section(header: HeaderLabel(text: "Preferences", icon: "gearshape")) {

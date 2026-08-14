@@ -13,7 +13,11 @@ enum FileSearchEngine {
 
 	private static func walk(_ directory: URL, query: String, includeHidden: Bool, into results: inout [FileNode]) throws {
 		try Task.checkCancellation()
-		let children = try DirectoryLister.children(of: directory, includeHidden: includeHidden)
+		// A permission-denied (or otherwise unreadable) subfolder should never abort
+		// the whole search - just skip that one subtree silently and keep going.
+		guard let children = try? DirectoryLister.children(of: directory, includeHidden: includeHidden) else {
+			return
+		}
 		for child in children {
 			try Task.checkCancellation()
 			if child.name.localizedCaseInsensitiveContains(query) {

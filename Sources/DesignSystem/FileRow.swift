@@ -6,7 +6,6 @@ import SwiftUI
 struct FileRow: View {
 	let node: FileNode
 	var subtitleOverride: String?
-	var fontSize: RowFontSize = .normal
 	/// Non-nil puts the row in multi-select mode with a leading checkmark.
 	var selection: Bool?
 
@@ -23,7 +22,7 @@ struct FileRow: View {
 
 			VStack(alignment: .leading, spacing: 2) {
 				Text(node.name)
-					.font(fontSize == .small ? .subheadline : .body)
+					.font(.body)
 					.lineLimit(1)
 					.truncationMode(.middle)
 					.foregroundStyle(Color(.label))

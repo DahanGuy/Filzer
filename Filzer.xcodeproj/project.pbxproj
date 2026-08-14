@@ -31,6 +31,7 @@
 		33C3438BBBE201E01569925D /* OAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6EE4383A807FF71E1829339 /* OAuthClient.swift */; };
 		38234B4A96F3DCDD72DCF71C /* FileViewerRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40764E5794CD40FCEB1A2EE1 /* FileViewerRoute.swift */; };
 		40E945399058BA89F866CD1B /* PlistNodeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0EC4A0199FFF7A8D5497FBA /* PlistNodeRow.swift */; };
+		415A4DA1A13B0CF9B0DB00C7 /* SymlinkTargetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1542B08ACE45899835D332 /* SymlinkTargetRoute.swift */; };
 		41F448C7A6AE4E2AF4DD47B0 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 7BF849D2942D00FA57C035C8 /* SWCompression */; };
 		47F74198B141EB929AE59DFC /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 910B4F2693616A34FD293DAC /* MediaPlayerView.swift */; };
 		480C450F8FD7758BFAECEBB5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 860C4A5F95CD0393F6B547A1 /* libsqlite3.tbd */; };
@@ -38,6 +39,7 @@
 		4E1B4766B4949E3405C150B4 /* ArchiveFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FE4323B1878C2CCD34028F /* ArchiveFormat.swift */; };
 		522A492F9A156B5904C697DF /* FTPProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E6B469686C41526E4D8D715 /* FTPProvider.swift */; };
 		523F4810B3A55D46A091325D /* SQLiteTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 798C4352BA38997D05736B7F /* SQLiteTableView.swift */; };
+		53874C31804BB68632418186 /* AddBookmarkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767041F58C17175909ED8B03 /* AddBookmarkView.swift */; };
 		57AC44E398ADF766EB11DFA8 /* SecuritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B58443B964ED43432576835 /* SecuritySettingsView.swift */; };
 		5B6E41FD8F09CFF6B2A43E31 /* AMSMB2 in Frameworks */ = {isa = PBXBuildFile; productRef = 11154EEF9D5BD2B18FF2AF38 /* AMSMB2 */; };
 		62F3432CA97488EFCD8CADE0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69744CBDB37FCD3D2C23AB64 /* Assets.xcassets */; };
@@ -127,6 +129,7 @@
 /* Begin PBXFileReference section */
 		05A74BE4B7FA9B3A2E1DC5E0 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ArchiveService.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		0BD849A19993601C08EC0C33 /* RemoteConnectionsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RemoteConnectionsStore.swift; path = RemoteConnectionsStore.swift; sourceTree = "<group>"; };
+		0E1542B08ACE45899835D332 /* SymlinkTargetRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SymlinkTargetRoute.swift; path = SymlinkTargetRoute.swift; sourceTree = "<group>"; };
 		1058486A92FCE381E0E881BB /* OAuthTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OAuthTokenStore.swift; path = OAuthTokenStore.swift; sourceTree = "<group>"; };
 		19954C84AC321B484BDE5889 /* WebViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebViewerView.swift; path = WebViewerView.swift; sourceTree = "<group>"; };
 		1D5F495A90F980008B9401F9 /* FileRowContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileRowContextMenu.swift; path = FileRowContextMenu.swift; sourceTree = "<group>"; };
@@ -174,6 +177,7 @@
 		7104439C8F285E92FF9527A1 /* FileOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileOperation.swift; path = FileOperation.swift; sourceTree = "<group>"; };
 		72414D579CB78EDDEBA96F03 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsStore.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		757447108B6FE97FCE60570F /* POSIXPermissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = POSIXPermissions.swift; path = POSIXPermissions.swift; sourceTree = "<group>"; };
+		767041F58C17175909ED8B03 /* AddBookmarkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddBookmarkView.swift; path = AddBookmarkView.swift; sourceTree = "<group>"; };
 		76C64741A3255B688CAA9FD9 /* RecentsFlyoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RecentsFlyoutView.swift; path = RecentsFlyoutView.swift; sourceTree = "<group>"; };
 		796E494D8D498CF65535FEE9 /* PlistEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PlistEditorView.swift; path = PlistEditorView.swift; sourceTree = "<group>"; };
 		798C4352BA38997D05736B7F /* SQLiteTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SQLiteTableView.swift; path = SQLiteTableView.swift; sourceTree = "<group>"; };
@@ -292,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				E1814DC29AFD6DCF007C1B2A /* BookmarksFlyoutView.swift */,
+				767041F58C17175909ED8B03 /* AddBookmarkView.swift */,
 			);
 			name = Bookmarks;
 			path = Bookmarks;
@@ -486,6 +491,7 @@
 				CD4B4EB8BBA239463860E5F8 /* FileBrowserViewModel.swift */,
 				1D5F495A90F980008B9401F9 /* FileRowContextMenu.swift */,
 				40764E5794CD40FCEB1A2EE1 /* FileViewerRoute.swift */,
+				0E1542B08ACE45899835D332 /* SymlinkTargetRoute.swift */,
 			);
 			name = Browser;
 			path = Browser;
@@ -822,6 +828,8 @@
 				C50747E69BB0DA4BE36668A3 /* OneDriveProvider.swift in Sources */,
 				B0B6465E948D9668C389C868 /* GoogleDriveProvider.swift in Sources */,
 				9A0D4723937E545E56C48204 /* PKCE.swift in Sources */,
+				415A4DA1A13B0CF9B0DB00C7 /* SymlinkTargetRoute.swift in Sources */,
+				53874C31804BB68632418186 /* AddBookmarkView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
