@@ -51,6 +51,7 @@
 		72CCE45626EF11A7A0FF98CA /* PartyUI in Frameworks */ = {isa = PBXBuildFile; productRef = AB24D56658FE65E2F06B97A2 /* PartyUI */; };
 		775B49FCAF3F77F8C0D4917D /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F51464D89B506F3C8A92F31 /* EmptyStateView.swift */; };
 		78854D0D9A489B52429A6FA0 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = E95445BB8F59CF085871BDB6 /* ZIPFoundation */; };
+		81704106A0C645F67FCD625F /* AMSMB2 in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 11154EEF9D5BD2B18FF2AF38 /* AMSMB2 */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		824A412CB0D578773A3D0693 /* AddRemoteLocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2449E18436C1FEBDF08499 /* AddRemoteLocationView.swift */; };
 		88FE4C5584FE889EB65157F2 /* RemoteFileProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB49401EBB94443178617C22 /* RemoteFileProvider.swift */; };
 		8B71400E81A805FFF8A29CD8 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72414D579CB78EDDEBA96F03 /* SettingsStore.swift */; };
@@ -108,6 +109,20 @@
 		FEF0450DBBD14CA52A819023 /* SQLiteReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F24E498E26D5EEA5145569 /* SQLiteReader.swift */; };
 		FF0248F7B24091312E9853D1 /* PasteboardBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16246FC8D42409678C2E1A7 /* PasteboardBanner.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		98244E8E86D3700D896CE1DD /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				81704106A0C645F67FCD625F /* AMSMB2 in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		05A74BE4B7FA9B3A2E1DC5E0 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ArchiveService.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
@@ -642,6 +657,7 @@
 				57B1D0AB4AAE1F08EF24FF77 /* Frameworks */,
 				FCE1402EB0822D29D2AAC883 /* Resources */,
 				D71A43A5820010FBA85913B7 /* Sources */,
+				98244E8E86D3700D896CE1DD /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
