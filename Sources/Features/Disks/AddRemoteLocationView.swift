@@ -29,12 +29,14 @@ struct AddRemoteLocationView: View {
 	var body: some View {
 		Form {
 			Section(header: HeaderLabel(text: "Type", icon: "network")) {
-				Picker("Type", selection: $kind) {
+				Picker(selection: $kind) {
 					ForEach(RemoteConnectionKind.allCases) { kind in
-						Text(kind.title).tag(kind)
+						Label(kind.title, systemImage: kind.systemImageName).tag(kind)
 					}
+				} label: {
+					Label(kind.title, systemImage: kind.systemImageName)
 				}
-				.pickerStyle(.segmented)
+				.pickerStyle(.menu)
 				.onChange(of: kind) { _ in resetSignIn() }
 			}
 
