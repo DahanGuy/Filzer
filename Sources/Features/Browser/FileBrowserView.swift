@@ -544,21 +544,13 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// While selecting, this hosts `selectionActionBar`. Otherwise, a single search
-	/// field - no mode toggle, no path-input dual-purpose (that's `PathNavigatorView`,
-	/// a separate sheet reachable from the overflow menu). Local `@FocusState`/
-	/// `@State`, not `.searchable()`: this needs bottom placement, which
-	/// `.searchable()` can't do pre-iOS 26, and reading `.searchable()`'s
-	/// `\.isSearching` from the very view that attaches `.searchable()` never sees the
-	/// updated value - it only propagates to genuine child views - which is exactly
-	/// why that attempt never visibly showed results despite `scheduleSearch()`
-	/// running correctly underneath. Plain local state has no such restriction.
+	/// TEMPORARY: searchBar removed from this slot to isolate the .searchable()
+	/// placement test - only selectionActionBar remains here now, so whatever search
+	/// UI is visible is unambiguously .searchable()'s doing.
 	@ViewBuilder
 	private var bottomBar: some View {
 		if viewModel.isSelecting {
 			selectionActionBar
-		} else {
-			searchBar
 		}
 	}
 
