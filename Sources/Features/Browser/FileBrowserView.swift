@@ -505,8 +505,8 @@ struct FileBrowserView: View {
 	/// reachable whether or not the native search field is currently engaged.
 	@ToolbarContentBuilder
 	private var toolbarBottom: some ToolbarContent {
-		if !viewModel.isSelecting {
-			ToolbarItem(placement: .bottomBar) {
+		ToolbarItem(placement: .bottomBar) {
+			if !viewModel.isSelecting {
 				Button {
 					togglePathInputMode()
 				} label: {
