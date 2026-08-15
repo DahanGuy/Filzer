@@ -870,7 +870,19 @@ private struct BookmarkDestinationRoute: View {
 				destination: BookmarkDestinationRoute(chain: Array(chain.dropFirst()), displayName: displayName),
 				isActive: $isNextActive
 			) { EmptyView() }
-			.onAppear { isNextActive = true }
+			.task {
+				// Firing every isActive=true the instant the previous level appears
+				// races NavigationView's own push transition and makes it lose track
+				// of the stack - observed as bouncing between the first two levels
+				// instead of proceeding deeper. Waiting out that transition first
+				// (~standard push duration) before triggering the next one avoids
+				// the race; it also happens to match what was asked for elsewhere -
+				// walking through each folder like a real tap-through, not an
+				// instant teleport.
+				try? await Task.sleep(nanoseconds: 350_000_000)
+				guard !Task.isCancelled else { return }
+				isNextActive = true
+			}
 		}
 	}
 }
