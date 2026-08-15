@@ -31,6 +31,7 @@ struct SettingsSnapshot: Codable {
 	var sortAscending: Bool
 	var biometricLockEnabled: Bool
 	var lockTimeoutSeconds: Int
+	var recursiveSearch: Bool
 }
 
 /// App-wide preferences, backed by `UserDefaults`. Every property persists itself on
@@ -45,6 +46,7 @@ final class SettingsStore: ObservableObject {
 		static let sortAscending = "Filzer.Settings.SortAscending"
 		static let biometricLockEnabled = "Filzer.Settings.BiometricLockEnabled"
 		static let lockTimeoutSeconds = "Filzer.Settings.LockTimeoutSeconds"
+		static let recursiveSearch = "Filzer.Settings.RecursiveSearch"
 	}
 
 	@Published var showHiddenFiles: Bool { didSet { defaults.set(showHiddenFiles, forKey: Keys.showHiddenFiles) } }
@@ -52,6 +54,9 @@ final class SettingsStore: ObservableObject {
 	@Published var theme: AppTheme { didSet { defaults.set(theme.rawValue, forKey: Keys.theme) } }
 	@Published var biometricLockEnabled: Bool { didSet { defaults.set(biometricLockEnabled, forKey: Keys.biometricLockEnabled) } }
 	@Published var lockTimeoutSeconds: Int { didSet { defaults.set(lockTimeoutSeconds, forKey: Keys.lockTimeoutSeconds) } }
+	/// Whether search walks every subfolder under the current one (Filza's own
+	/// default) or stays flat, matching just the current folder's own listing.
+	@Published var recursiveSearch: Bool { didSet { defaults.set(recursiveSearch, forKey: Keys.recursiveSearch) } }
 
 	@Published var sortDescriptor: FileSortDescriptor {
 		didSet {
@@ -69,6 +74,7 @@ final class SettingsStore: ObservableObject {
 		theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
 		biometricLockEnabled = defaults.object(forKey: Keys.biometricLockEnabled) as? Bool ?? false
 		lockTimeoutSeconds = defaults.object(forKey: Keys.lockTimeoutSeconds) as? Int ?? 60
+		recursiveSearch = defaults.object(forKey: Keys.recursiveSearch) as? Bool ?? true
 		let field = FileSortField(rawValue: defaults.string(forKey: Keys.sortField) ?? "") ?? .name
 		let ascending = defaults.object(forKey: Keys.sortAscending) as? Bool ?? true
 		sortDescriptor = FileSortDescriptor(field: field, ascending: ascending)
@@ -82,7 +88,8 @@ final class SettingsStore: ObservableObject {
 			sortField: sortDescriptor.field,
 			sortAscending: sortDescriptor.ascending,
 			biometricLockEnabled: biometricLockEnabled,
-			lockTimeoutSeconds: lockTimeoutSeconds
+			lockTimeoutSeconds: lockTimeoutSeconds,
+			recursiveSearch: recursiveSearch
 		)
 	}
 
@@ -93,6 +100,7 @@ final class SettingsStore: ObservableObject {
 		sortDescriptor = FileSortDescriptor(field: snapshot.sortField, ascending: snapshot.sortAscending)
 		biometricLockEnabled = snapshot.biometricLockEnabled
 		lockTimeoutSeconds = snapshot.lockTimeoutSeconds
+		recursiveSearch = snapshot.recursiveSearch
 	}
 
 	/// Encodes every preference for the Backup/Restore "export to file" action. The

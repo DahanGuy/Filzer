@@ -23,9 +23,19 @@ final class BookmarksStore: ObservableObject {
 	@Published private(set) var entries: [BookmarkEntry] = []
 
 	private let defaultsKey = "Filzer.Bookmarks"
+	/// Security-scoped access for every "Added Folder" is started once here (or the
+	/// moment one is added) and kept alive for the app's whole lifetime, keyed by
+	/// entry id — far simpler and less error-prone than starting/stopping it around
+	/// every individual browse/search/mutate call, and it's what lets *every* engine
+	/// operation anywhere in the app (including a recursive search walking down into
+	/// one) treat an Added Folder exactly like any other reachable path.
+	private var accessScopedURLs: [UUID: URL] = [:]
 
 	init() {
 		load()
+		for entry in entries where entry.securityScopedBookmarkData != nil {
+			startAccess(for: entry)
+		}
 	}
 
 	func isBookmarked(_ url: URL) -> Bool {
@@ -42,10 +52,14 @@ final class BookmarksStore: ObservableObject {
 		)
 		entries.append(entry)
 		save()
+		if entry.securityScopedBookmarkData != nil {
+			startAccess(for: entry)
+		}
 		return entry
 	}
 
 	func remove(_ entry: BookmarkEntry) {
+		stopAccess(for: entry)
 		entries.removeAll { $0.id == entry.id }
 		save()
 	}
@@ -79,14 +93,29 @@ final class BookmarksStore: ObservableObject {
 		save()
 	}
 
-	/// Resolves an externally-bookmarked entry back to a usable URL. Callers must wrap
-	/// filesystem access in `SecurityScopedBookmark.withSecurityScopedAccess` when
-	/// `securityScopedBookmarkData` is non-nil; in-sandbox entries need no such wrapping.
+	/// Resolves an externally-bookmarked entry back to a usable URL. Returns the same
+	/// instance security-scoped access was started on (see `accessScopedURLs`) so every
+	/// caller shares one already-authorized URL instead of re-resolving (and needing to
+	/// re-wrap access around) a fresh one per call; in-sandbox entries need no such
+	/// wrapping and just return their own `url`.
 	func resolvedURL(for entry: BookmarkEntry) -> URL {
-		guard let data = entry.securityScopedBookmarkData, let resolved = try? SecurityScopedBookmark.resolve(data) else {
-			return entry.url
-		}
-		return resolved.url
+		accessScopedURLs[entry.id] ?? entry.url
+	}
+
+	/// Starts (and remembers) security-scoped access for one "Added Folder" entry. A
+	/// no-op for plain in-sandbox bookmarks and for a bookmark that's already active.
+	private func startAccess(for entry: BookmarkEntry) {
+		guard accessScopedURLs[entry.id] == nil,
+			let data = entry.securityScopedBookmarkData,
+			let resolved = try? SecurityScopedBookmark.resolve(data),
+			resolved.url.startAccessingSecurityScopedResource()
+		else { return }
+		accessScopedURLs[entry.id] = resolved.url
+	}
+
+	private func stopAccess(for entry: BookmarkEntry) {
+		guard let url = accessScopedURLs.removeValue(forKey: entry.id) else { return }
+		url.stopAccessingSecurityScopedResource()
 	}
 
 	private func load() {

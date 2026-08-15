@@ -45,6 +45,11 @@ struct FileBrowserView: View {
 	private struct PendingNavigation: Identifiable {
 		let url: URL
 		let displayName: String?
+		/// True for a Bookmarks/Disks jump: the destination's own parent is inserted
+		/// onto the stack first (see `BookmarkDestinationRoute`) so backing out of the
+		/// destination lands on the folder above it, not back on whatever screen
+		/// presented the flyout.
+		var insertParent: Bool = false
 		var id: URL { url }
 	}
 
@@ -77,6 +82,7 @@ struct FileBrowserView: View {
 		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
+		.toolbar { toolbarBottom }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -110,12 +116,12 @@ struct FileBrowserView: View {
 		}
 		.popover(isPresented: $showingDisks) {
 			NavigationView {
-				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1) })
+				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1, insertParent: true) })
 			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingBookmarks) {
 			NavigationView {
-				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1) })
+				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1, insertParent: true) })
 			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingRecents) {
@@ -174,16 +180,20 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var pendingNavigationDestination: some View {
 		if let pendingNavigation {
-			FileBrowserView(rootURL: pendingNavigation.url, displayName: pendingNavigation.displayName)
+			if pendingNavigation.insertParent {
+				BookmarkDestinationRoute(url: pendingNavigation.url, displayName: pendingNavigation.displayName)
+			} else {
+				FileBrowserView(rootURL: pendingNavigation.url, displayName: pendingNavigation.displayName)
+			}
 		} else {
 			EmptyView()
 		}
 	}
 
-	private func navigate(to url: URL, displayName: String?) {
+	private func navigate(to url: URL, displayName: String?, insertParent: Bool = false) {
 		isPathInputMode = false
 		searchQuery = ""
-		pendingNavigation = PendingNavigation(url: url, displayName: displayName)
+		pendingNavigation = PendingNavigation(url: url, displayName: displayName, insertParent: insertParent)
 	}
 
 	// MARK: - Empty / search states
@@ -197,15 +207,15 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Search always recurses from `rootURL` down through every subfolder it can
-	/// read, never just the current folder's own flat listing. The trailing button
-	/// swaps this for a path-input mode instead — typing (or pasting) an absolute
-	/// path with live autosuggest of matching subfolders.
+	/// Recursive (subfolders too) or flat (current folder only) per
+	/// `settings.recursiveSearch` - see `scheduleSearch`. The persistent path-input
+	/// toggle lives in `toolbarBottom`, not here, so it's reachable even before the
+	/// user has engaged the native search field at all.
 	@ViewBuilder
 	private var searchResultsContent: some View {
-		VStack(spacing: 0) {
-			HStack(spacing: 12) {
-				if isPathInputMode {
+		if isPathInputMode {
+			VStack(spacing: 0) {
+				HStack(spacing: 12) {
 					Button {
 						UIPasteboard.general.string = rootURL.path
 					} label: {
@@ -216,27 +226,19 @@ struct FileBrowserView: View {
 						.foregroundStyle(.secondary)
 						.lineLimit(1)
 						.truncationMode(.head)
+					Spacer()
 				}
-				Spacer()
-				Button {
-					togglePathInputMode()
-				} label: {
-					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
-				}
-			}
-			.padding(.horizontal)
-			.padding(.vertical, 8)
-
-			if isPathInputMode {
+				.padding(.horizontal)
+				.padding(.vertical, 8)
 				pathSuggestionsContent
-			} else if isSearchLoading {
-				ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-			} else if searchResults.isEmpty {
-				EmptyStateView(icon: "magnifyingglass", title: "No Results")
-			} else {
-				List { ForEach(searchResults) { row(for: $0) } }
-					.listStyle(.plain)
 			}
+		} else if isSearchLoading {
+			ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+		} else if searchResults.isEmpty {
+			EmptyStateView(icon: "magnifyingglass", title: "No Results")
+		} else {
+			List { ForEach(searchResults) { row(for: $0) } }
+				.listStyle(.plain)
 		}
 	}
 
@@ -299,10 +301,11 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Recursive search rooted at `rootURL`, debounced the same as
-	/// `schedulePathSuggestions`. `FileSearchEngine` walks every subfolder in the
-	/// tree and silently skips any it can't read, rather than failing the whole
-	/// search.
+	/// Recursive (subfolders too) or flat (current folder only) per
+	/// `settings.recursiveSearch`, debounced the same as `schedulePathSuggestions`.
+	/// Any failure - an inaccessible folder anywhere in a recursive walk, or the
+	/// current folder itself going unreadable mid-session - is skipped silently
+	/// rather than surfacing an error popup; the user just sees fewer/no results.
 	private func scheduleSearch() {
 		searchTask?.cancel()
 		guard isSearchActive else {
@@ -313,17 +316,24 @@ struct FileBrowserView: View {
 		let query = searchQuery
 		let root = rootURL
 		let includeHidden = settings.showHiddenFiles
+		let recursive = settings.recursiveSearch
 		isSearchLoading = true
 		searchTask = Task {
 			try? await Task.sleep(nanoseconds: 300_000_000)
 			guard !Task.isCancelled else { return }
+			let results: [FileNode]
 			do {
-				let results = try await FileSystem.current.search(root: root, query: query, includeHidden: includeHidden)
-				guard !Task.isCancelled else { return }
-				searchResults = results
+				if recursive {
+					results = try await FileSystem.current.search(root: root, query: query, includeHidden: includeHidden)
+				} else {
+					let children = try await FileSystem.current.listDirectory(at: root, includeHidden: includeHidden)
+					results = children.filter { $0.name.localizedCaseInsensitiveContains(query) }
+				}
 			} catch {
-				if !Task.isCancelled { viewModel.errorMessage = error.localizedDescription }
+				results = []
 			}
+			guard !Task.isCancelled else { return }
+			searchResults = results
 			isSearchLoading = false
 		}
 	}
@@ -431,7 +441,7 @@ struct FileBrowserView: View {
 		VStack(spacing: 6) {
 			ZStack(alignment: .topTrailing) {
 				FileIconView(node: node)
-					.opacity(node.isHidden ? 0.5 : 1)
+					.opacity(node.isHidden ? 0.65 : 1)
 				if viewModel.isSelecting {
 					Image(systemName: viewModel.selection.contains(node.url) ? "checkmark.circle.fill" : "circle")
 						.font(.caption)
@@ -443,10 +453,10 @@ struct FileBrowserView: View {
 				.font(.caption)
 				.lineLimit(2)
 				.multilineTextAlignment(.center)
-				.foregroundStyle(node.isHidden ? Color(.tertiaryLabel) : Color(.label))
+				.foregroundStyle(node.isHidden ? Color(.secondaryLabel) : Color(.label))
 		}
 		.frame(maxWidth: .infinity)
-		.opacity(node.isHidden ? 0.85 : 1)
+		.opacity(node.isHidden ? 0.92 : 1)
 	}
 
 	@ViewBuilder
@@ -487,6 +497,22 @@ struct FileBrowserView: View {
 	private var toolbarTrailing: some ToolbarContent {
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarContent
+		}
+	}
+
+	/// A persistent bottom-bar button beside the (top) search field, switching it
+	/// between recursive/flat search and a path-input mode with live autosuggest -
+	/// reachable whether or not the native search field is currently engaged.
+	@ToolbarContentBuilder
+	private var toolbarBottom: some ToolbarContent {
+		if !viewModel.isSelecting {
+			ToolbarItem(placement: .bottomBar) {
+				Button {
+					togglePathInputMode()
+				} label: {
+					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
+				}
+			}
 		}
 	}
 
@@ -701,6 +727,36 @@ struct FileBrowserView: View {
 		Alertinator.shared.prompt(title: "Rename", placeholder: "Name", text: node.name) { name in
 			guard let name, !name.isEmpty, name != node.name else { return }
 			await viewModel.rename(node, to: name)
+		}
+	}
+}
+
+/// Pushed instead of the destination directly for a Bookmarks/Disks jump. Inserts the
+/// destination's own parent onto the stack first and auto-pushes the destination on
+/// top of it, so backing out of the destination lands on the folder above it in the
+/// filesystem - continuing to browse around where the jump landed - rather than back
+/// on whatever screen presented the flyout. A destination with no distinct parent
+/// (already the volume root) skips the wrapper and pushes straight through.
+private struct BookmarkDestinationRoute: View {
+	let url: URL
+	let displayName: String?
+
+	@State private var isTargetActive = false
+
+	private var parentURL: URL { url.deletingLastPathComponent() }
+
+	var body: some View {
+		if parentURL.path == url.path {
+			FileBrowserView(rootURL: url, displayName: displayName)
+		} else {
+			FileBrowserView(rootURL: parentURL)
+				.background(
+					NavigationLink(
+						destination: FileBrowserView(rootURL: url, displayName: displayName),
+						isActive: $isTargetActive
+					) { EmptyView() }
+				)
+				.onAppear { isTargetActive = true }
 		}
 	}
 }
