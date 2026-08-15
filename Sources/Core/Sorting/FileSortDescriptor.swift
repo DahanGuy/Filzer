@@ -31,8 +31,8 @@ struct FileSortDescriptor: Codable, Equatable {
 	/// chosen field breaks ties, then name breaks any remaining tie deterministically.
 	func comparator() -> (FileNode, FileNode) -> Bool {
 		{ lhs, rhs in
-			if lhs.isDirectory != rhs.isDirectory {
-				return lhs.isDirectory
+			if lhs.sortsAsDirectory != rhs.sortsAsDirectory {
+				return lhs.sortsAsDirectory
 			}
 			let primary = compare(lhs, rhs)
 			if primary != 0 {

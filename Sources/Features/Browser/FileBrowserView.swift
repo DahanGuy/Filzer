@@ -23,9 +23,8 @@ struct FileBrowserView: View {
 	@StateObject private var viewModel: FileBrowserViewModel
 	@Environment(\.isSearching) private var isSearching
 	@State private var searchQuery = ""
-	@State private var searchScope: SearchScope = .thisFolder
 	@State private var searchResults: [FileNode] = []
-	@State private var isSearchingRoot = false
+	@State private var isSearchLoading = false
 	@State private var searchTask: Task<Void, Never>?
 	@State private var isPathInputMode = false
 	@State private var pathSuggestions: [String] = []
@@ -42,12 +41,6 @@ struct FileBrowserView: View {
 	@State private var showingBookmarks = false
 	@State private var showingRecents = false
 	@State private var showingSettings = false
-
-	enum SearchScope: String, CaseIterable, Identifiable {
-		case thisFolder = "This Folder"
-		case root = "Root"
-		var id: String { rawValue }
-	}
 
 	private struct PendingNavigation: Identifiable {
 		let url: URL
@@ -135,10 +128,9 @@ struct FileBrowserView: View {
 			if isPathInputMode {
 				schedulePathSuggestions()
 			} else {
-				scheduleRootSearchIfNeeded()
+				scheduleSearch()
 			}
 		}
-		.onChange(of: searchScope) { _ in scheduleRootSearchIfNeeded() }
 		.onChange(of: isSearching) { newValue in
 			if !newValue { resetPathInputMode() }
 		}
@@ -165,15 +157,10 @@ struct FileBrowserView: View {
 		!searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 	}
 
-	private var filteredNodes: [FileNode] {
-		guard !searchQuery.isEmpty else { return viewModel.nodes }
-		return viewModel.nodes.filter { $0.name.localizedCaseInsensitiveContains(searchQuery) }
-	}
-
-	/// A single hidden `NavigationLink` driving programmatic push — used by "Go to
-	/// Path", the search bar's path-input mode, and by tapping a folder inside the
-	/// Disks/Bookmarks flyouts (which dismiss themselves and hand the target back here
-	/// via `onNavigate`, so the folder opens in *this* screen's own stack instead of
+	/// A single hidden `NavigationLink` driving programmatic push — used by the search
+	/// bar's path-input mode and by tapping a folder inside the Disks/Bookmarks
+	/// flyouts (which dismiss themselves and hand the target back here via
+	/// `onNavigate`, so the folder opens in *this* screen's own stack instead of
 	/// nesting inside the flyout's).
 	private var navigationLinks: some View {
 		NavigationLink(
@@ -210,6 +197,10 @@ struct FileBrowserView: View {
 		}
 	}
 
+	/// Search always recurses from `rootURL` down through every subfolder it can
+	/// read, never just the current folder's own flat listing. The trailing button
+	/// swaps this for a path-input mode instead — typing (or pasting) an absolute
+	/// path with live autosuggest of matching subfolders.
 	@ViewBuilder
 	private var searchResultsContent: some View {
 		VStack(spacing: 0) {
@@ -225,15 +216,8 @@ struct FileBrowserView: View {
 						.foregroundStyle(.secondary)
 						.lineLimit(1)
 						.truncationMode(.head)
-					Spacer()
-				} else {
-					Picker("Scope", selection: $searchScope) {
-						ForEach(SearchScope.allCases) { scope in
-							Text(scope.rawValue).tag(scope)
-						}
-					}
-					.pickerStyle(.segmented)
 				}
+				Spacer()
 				Button {
 					togglePathInputMode()
 				} label: {
@@ -245,25 +229,13 @@ struct FileBrowserView: View {
 
 			if isPathInputMode {
 				pathSuggestionsContent
+			} else if isSearchLoading {
+				ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+			} else if searchResults.isEmpty {
+				EmptyStateView(icon: "magnifyingglass", title: "No Results")
 			} else {
-				switch searchScope {
-				case .thisFolder:
-					if filteredNodes.isEmpty {
-						EmptyStateView(icon: "magnifyingglass", title: "No Results")
-					} else {
-						List { ForEach(filteredNodes) { row(for: $0) } }
-							.listStyle(.plain)
-					}
-				case .root:
-					if isSearchingRoot {
-						ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-					} else if searchResults.isEmpty {
-						EmptyStateView(icon: "magnifyingglass", title: "No Results")
-					} else {
-						List { ForEach(searchResults) { row(for: $0) } }
-							.listStyle(.plain)
-					}
-				}
+				List { ForEach(searchResults) { row(for: $0) } }
+					.listStyle(.plain)
 			}
 		}
 	}
@@ -327,17 +299,21 @@ struct FileBrowserView: View {
 		}
 	}
 
-	private func scheduleRootSearchIfNeeded() {
+	/// Recursive search rooted at `rootURL`, debounced the same as
+	/// `schedulePathSuggestions`. `FileSearchEngine` walks every subfolder in the
+	/// tree and silently skips any it can't read, rather than failing the whole
+	/// search.
+	private func scheduleSearch() {
 		searchTask?.cancel()
-		guard searchScope == .root, isSearchActive else {
+		guard isSearchActive else {
 			searchResults = []
-			isSearchingRoot = false
+			isSearchLoading = false
 			return
 		}
 		let query = searchQuery
-		let root = searchRootURL
+		let root = rootURL
 		let includeHidden = settings.showHiddenFiles
-		isSearchingRoot = true
+		isSearchLoading = true
 		searchTask = Task {
 			try? await Task.sleep(nanoseconds: 300_000_000)
 			guard !Task.isCancelled else { return }
@@ -348,22 +324,8 @@ struct FileBrowserView: View {
 			} catch {
 				if !Task.isCancelled { viewModel.errorMessage = error.localizedDescription }
 			}
-			isSearchingRoot = false
+			isSearchLoading = false
 		}
-	}
-
-	/// The nearest known accessible root above (or at) `rootURL` — Filzer's own
-	/// container, or whichever bookmarked external folder contains it. Recursive search
-	/// from the literal device root would always be empty (a sandboxed app can't even
-	/// list "/"), so "Root" scope searches from here instead.
-	private var searchRootURL: URL {
-		let home = URL(fileURLWithPath: NSHomeDirectory())
-		if rootURL.path.hasPrefix(home.path) { return home }
-		for entry in bookmarks.entries {
-			let resolved = bookmarks.resolvedURL(for: entry)
-			if rootURL.path.hasPrefix(resolved.path) { return resolved }
-		}
-		return rootURL
 	}
 
 	// MARK: - Content
@@ -372,22 +334,34 @@ struct FileBrowserView: View {
 	private var content: some View {
 		switch settings.viewMode {
 		case .list:
-			List { ForEach(filteredNodes) { row(for: $0) } }
+			List { ForEach(viewModel.nodes) { row(for: $0) } }
 				.listStyle(.plain)
 		case .grid:
 			ScrollView {
 				LazyVGrid(columns: [GridItem(.adaptive(minimum: 92))], spacing: 20) {
-					ForEach(filteredNodes) { gridCell(for: $0) }
+					ForEach(viewModel.nodes) { gridCell(for: $0) }
 				}
 				.padding()
 			}
 		}
 	}
 
+	/// A symlink never lands on Quick Look for itself — `resolvingSymlinksInPath`
+	/// follows the *entire* chain (not just one hop, unlike `symbolicLinkDestination`)
+	/// so this opens the real browser or viewer for whatever it ultimately points to,
+	/// exactly like tapping that target directly would. Fully synchronous: no loading
+	/// spinner between tapping a folder-symlink and it pushing.
 	@ViewBuilder
 	private func destination(for node: FileNode) -> some View {
 		if node.isSymbolicLink {
-			SymlinkTargetRoute(node: node)
+			let resolved = node.url.resolvingSymlinksInPath()
+			if node.symbolicLinkTargetIsDirectory {
+				FileBrowserView(rootURL: resolved, displayName: node.name)
+			} else if let target = try? FileNode.make(at: resolved) {
+				FileViewerRoute(node: target)
+			} else {
+				EmptyStateView(icon: "questionmark.folder", title: "Broken Link")
+			}
 		} else if node.isDirectory {
 			FileBrowserView(rootURL: node.url)
 		} else {
@@ -457,6 +431,7 @@ struct FileBrowserView: View {
 		VStack(spacing: 6) {
 			ZStack(alignment: .topTrailing) {
 				FileIconView(node: node)
+					.opacity(node.isHidden ? 0.5 : 1)
 				if viewModel.isSelecting {
 					Image(systemName: viewModel.selection.contains(node.url) ? "checkmark.circle.fill" : "circle")
 						.font(.caption)
@@ -468,9 +443,10 @@ struct FileBrowserView: View {
 				.font(.caption)
 				.lineLimit(2)
 				.multilineTextAlignment(.center)
-				.foregroundStyle(Color(.label))
+				.foregroundStyle(node.isHidden ? Color(.tertiaryLabel) : Color(.label))
 		}
 		.frame(maxWidth: .infinity)
+		.opacity(node.isHidden ? 0.85 : 1)
 	}
 
 	@ViewBuilder
@@ -537,11 +513,11 @@ struct FileBrowserView: View {
 	private var trailingToolbarContent: some View {
 		if viewModel.isSelecting {
 			HStack(spacing: 18) {
-				Button(viewModel.selection.count == filteredNodes.count ? "Deselect All" : "Select All") {
-					if viewModel.selection.count == filteredNodes.count {
+				Button(viewModel.selection.count == viewModel.nodes.count ? "Deselect All" : "Select All") {
+					if viewModel.selection.count == viewModel.nodes.count {
 						viewModel.selection.removeAll()
 					} else {
-						viewModel.selection = Set(filteredNodes.map(\.url))
+						viewModel.selection = Set(viewModel.nodes.map(\.url))
 					}
 				}
 				batchActionsMenu
@@ -703,12 +679,6 @@ struct FileBrowserView: View {
 				Label("Paste \(clipboard.count) Item\(clipboard.count == 1 ? "" : "s")", systemImage: "doc.on.clipboard")
 			}
 		}
-		Divider()
-		Button {
-			promptGoToPath()
-		} label: {
-			Label("Go to Path\u{2026}", systemImage: "arrow.forward.to.line")
-		}
 	}
 
 	// MARK: - Prompts
@@ -731,13 +701,6 @@ struct FileBrowserView: View {
 		Alertinator.shared.prompt(title: "Rename", placeholder: "Name", text: node.name) { name in
 			guard let name, !name.isEmpty, name != node.name else { return }
 			await viewModel.rename(node, to: name)
-		}
-	}
-
-	private func promptGoToPath() {
-		Alertinator.shared.prompt(title: "Go to Path", placeholder: "/path/to/folder", text: rootURL.path) { path in
-			guard let path, !path.isEmpty else { return }
-			navigate(to: URL(fileURLWithPath: path), displayName: nil)
 		}
 	}
 }

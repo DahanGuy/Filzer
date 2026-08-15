@@ -31,7 +31,6 @@ struct SettingsSnapshot: Codable {
 	var sortAscending: Bool
 	var biometricLockEnabled: Bool
 	var lockTimeoutSeconds: Int
-	var launchPath: String
 }
 
 /// App-wide preferences, backed by `UserDefaults`. Every property persists itself on
@@ -46,7 +45,6 @@ final class SettingsStore: ObservableObject {
 		static let sortAscending = "Filzer.Settings.SortAscending"
 		static let biometricLockEnabled = "Filzer.Settings.BiometricLockEnabled"
 		static let lockTimeoutSeconds = "Filzer.Settings.LockTimeoutSeconds"
-		static let launchPath = "Filzer.Settings.LaunchPath"
 	}
 
 	@Published var showHiddenFiles: Bool { didSet { defaults.set(showHiddenFiles, forKey: Keys.showHiddenFiles) } }
@@ -54,9 +52,6 @@ final class SettingsStore: ObservableObject {
 	@Published var theme: AppTheme { didSet { defaults.set(theme.rawValue, forKey: Keys.theme) } }
 	@Published var biometricLockEnabled: Bool { didSet { defaults.set(biometricLockEnabled, forKey: Keys.biometricLockEnabled) } }
 	@Published var lockTimeoutSeconds: Int { didSet { defaults.set(lockTimeoutSeconds, forKey: Keys.lockTimeoutSeconds) } }
-	/// The absolute filesystem path `RootBrowserShell` opens to on launch — a real
-	/// path like `/private/var/mobile/...`, not limited to Filzer's own container.
-	@Published var launchPath: String { didSet { defaults.set(launchPath, forKey: Keys.launchPath) } }
 
 	@Published var sortDescriptor: FileSortDescriptor {
 		didSet {
@@ -74,7 +69,6 @@ final class SettingsStore: ObservableObject {
 		theme = AppTheme(rawValue: defaults.string(forKey: Keys.theme) ?? "") ?? .system
 		biometricLockEnabled = defaults.object(forKey: Keys.biometricLockEnabled) as? Bool ?? false
 		lockTimeoutSeconds = defaults.object(forKey: Keys.lockTimeoutSeconds) as? Int ?? 60
-		launchPath = defaults.string(forKey: Keys.launchPath) ?? "/"
 		let field = FileSortField(rawValue: defaults.string(forKey: Keys.sortField) ?? "") ?? .name
 		let ascending = defaults.object(forKey: Keys.sortAscending) as? Bool ?? true
 		sortDescriptor = FileSortDescriptor(field: field, ascending: ascending)
@@ -88,8 +82,7 @@ final class SettingsStore: ObservableObject {
 			sortField: sortDescriptor.field,
 			sortAscending: sortDescriptor.ascending,
 			biometricLockEnabled: biometricLockEnabled,
-			lockTimeoutSeconds: lockTimeoutSeconds,
-			launchPath: launchPath
+			lockTimeoutSeconds: lockTimeoutSeconds
 		)
 	}
 
@@ -100,7 +93,6 @@ final class SettingsStore: ObservableObject {
 		sortDescriptor = FileSortDescriptor(field: snapshot.sortField, ascending: snapshot.sortAscending)
 		biometricLockEnabled = snapshot.biometricLockEnabled
 		lockTimeoutSeconds = snapshot.lockTimeoutSeconds
-		launchPath = snapshot.launchPath
 	}
 
 	/// Encodes every preference for the Backup/Restore "export to file" action. The

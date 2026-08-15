@@ -34,16 +34,6 @@ struct DisksFlyoutView: View {
 				storageUsageRow
 			}
 
-			Section(header: HeaderLabel(text: "Local", icon: "iphone")) {
-				Button {
-					onNavigate(URL(fileURLWithPath: NSHomeDirectory()), "Filzer")
-					dismiss()
-				} label: {
-					NavigationLabel(text: "Filzer", icon: "internaldrive.fill")
-				}
-				.buttonStyle(.plain)
-			}
-
 			Section(header: HeaderLabel(text: "Added Folders", icon: "folder.badge.plus")) {
 				if addedFolders.isEmpty {
 					Text("No folders added")

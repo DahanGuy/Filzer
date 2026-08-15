@@ -22,12 +22,21 @@ struct FileNode: Identifiable, Hashable {
 	let groupOwnerAccountName: String?
 	/// Resolved target of a symbolic link. `nil` for every other kind.
 	let symbolicLinkDestination: URL?
+	/// Whether a symlink's target is itself a directory — meaningless for every other
+	/// kind (defaults `false`). A cheap `fileExists(atPath:isDirectory:)` check, not a
+	/// full recursive `FileNode.make` re-classification of the target (which risks
+	/// statting deep chains just to render a listing) — used so folder-symlinks sort
+	/// and navigate the same as real folders instead of being lumped in with files.
+	let symbolicLinkTargetIsDirectory: Bool
 	let isHidden: Bool
 
 	var id: URL { url }
 	var pathExtension: String { url.pathExtension }
 	var isDirectory: Bool { kind == .directory }
 	var isSymbolicLink: Bool { kind == .symbolicLink }
+	/// Whether this node should group with folders in a listing — real directories,
+	/// plus symlinks whose target is itself a directory.
+	var sortsAsDirectory: Bool { isDirectory || (isSymbolicLink && symbolicLinkTargetIsDirectory) }
 
 	/// Builds a snapshot for a single path.
 	///
@@ -48,6 +57,9 @@ struct FileNode: Identifiable, Hashable {
 			let destinationURL = destinationPath.hasPrefix("/")
 				? URL(fileURLWithPath: destinationPath)
 				: URL(fileURLWithPath: destinationPath, relativeTo: url.deletingLastPathComponent())
+			let standardizedDestination = destinationURL.standardizedFileURL
+			var isTargetDirectory: ObjCBool = false
+			let targetIsDirectory = fm.fileExists(atPath: standardizedDestination.path, isDirectory: &isTargetDirectory) && isTargetDirectory.boolValue
 			return FileNode(
 				url: url, name: name, kind: .symbolicLink,
 				size: (attrs[.size] as? NSNumber)?.int64Value ?? 0,
@@ -56,7 +68,8 @@ struct FileNode: Identifiable, Hashable {
 				posixPermissions: (attrs[.posixPermissions] as? NSNumber)?.int16Value ?? 0,
 				ownerAccountName: attrs[.ownerAccountName] as? String,
 				groupOwnerAccountName: attrs[.groupOwnerAccountName] as? String,
-				symbolicLinkDestination: destinationURL.standardizedFileURL,
+				symbolicLinkDestination: standardizedDestination,
+				symbolicLinkTargetIsDirectory: targetIsDirectory,
 				isHidden: isHidden
 			)
 		}
@@ -72,6 +85,7 @@ struct FileNode: Identifiable, Hashable {
 			ownerAccountName: attrs[.ownerAccountName] as? String,
 			groupOwnerAccountName: attrs[.groupOwnerAccountName] as? String,
 			symbolicLinkDestination: nil,
+			symbolicLinkTargetIsDirectory: false,
 			isHidden: isHidden
 		)
 	}
@@ -90,6 +104,7 @@ extension FileNode {
 			ownerAccountName: nil,
 			groupOwnerAccountName: nil,
 			symbolicLinkDestination: nil,
+			symbolicLinkTargetIsDirectory: false,
 			isHidden: item.name.hasPrefix(".")
 		)
 	}
@@ -107,6 +122,7 @@ extension FileNode {
 			ownerAccountName: nil,
 			groupOwnerAccountName: nil,
 			symbolicLinkDestination: nil,
+			symbolicLinkTargetIsDirectory: false,
 			isHidden: false
 		)
 	}

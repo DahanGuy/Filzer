@@ -19,19 +19,21 @@ struct FileRow: View {
 			}
 
 			FileIconView(node: node)
+				.opacity(node.isHidden ? 0.5 : 1)
 
 			VStack(alignment: .leading, spacing: 2) {
 				Text(node.name)
 					.font(.body)
 					.lineLimit(1)
 					.truncationMode(.middle)
-					.foregroundStyle(Color(.label))
+					.foregroundStyle(node.isHidden ? Color(.tertiaryLabel) : Color(.label))
 
 				Text(subtitleOverride ?? defaultSubtitle)
 					.font(.caption)
 					.foregroundStyle(.secondary)
 					.lineLimit(1)
 			}
+			.opacity(node.isHidden ? 0.7 : 1)
 
 			Spacer(minLength: 0)
 

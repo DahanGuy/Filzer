@@ -10,11 +10,9 @@ extension AppTheme {
 	}
 }
 
-/// The app's only top-level screen: a single file browser rooted at
-/// `settings.launchPath` (configurable in Settings > General, "/" by default) — a
-/// real filesystem path, not limited to Filzer's own container. Disks, Bookmarks, and
-/// "Go to Path" are how you get to other locations, all reachable from this screen's
-/// toolbar.
+/// The app's only top-level screen: a single file browser rooted at "/" — a real
+/// filesystem path, not limited to Filzer's own container. Disks and Bookmarks are
+/// how you get to other locations, both reachable from this screen's toolbar.
 struct RootBrowserShell: View {
 	@EnvironmentObject private var settings: SettingsStore
 	@Environment(\.scenePhase) private var scenePhase
@@ -22,7 +20,7 @@ struct RootBrowserShell: View {
 
 	var body: some View {
 		NavigationView {
-			FileBrowserView(rootURL: URL(fileURLWithPath: settings.launchPath), displayName: settings.launchPath, isRoot: true)
+			FileBrowserView(rootURL: URL(fileURLWithPath: "/"), isRoot: true)
 		}
 		.navigationViewStyle(.stack)
 		.preferredColorScheme(settings.theme.colorScheme)
