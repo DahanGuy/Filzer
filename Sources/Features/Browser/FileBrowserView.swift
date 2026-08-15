@@ -77,6 +77,7 @@ struct FileBrowserView: View {
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
+		.searchable(text: $searchQuery, prompt: "Search") // TEMPORARY: testing render position, see if bottom or top
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
