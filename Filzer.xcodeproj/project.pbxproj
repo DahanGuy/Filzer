@@ -57,6 +57,7 @@
 		88FE4C5584FE889EB65157F2 /* RemoteFileProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB49401EBB94443178617C22 /* RemoteFileProvider.swift */; };
 		8B71400E81A805FFF8A29CD8 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72414D579CB78EDDEBA96F03 /* SettingsStore.swift */; };
 		8CDC40D9845E00DB6203E45C /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5469472DB1B2480E13D0F201 /* FileBrowserView.swift */; };
+		91C64CB8AC9455767AFAB84D /* PathNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE7C4E1C96725B9CDED802B2 /* PathNavigatorView.swift */; };
 		92B1466087198293EA125D58 /* ImageViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4D426E998A009D3D996FF6 /* ImageViewerView.swift */; };
 		970748CDA44E534D9989E010 /* WebDAVProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39194F92B3DE7CC81E2782C5 /* WebDAVProvider.swift */; };
 		98EB45339EC93365B7C0B90B /* DirectoryLister.swift in Sources */ = {isa = PBXBuildFile; fileRef = 237F4FCFA87842186BCCACED /* DirectoryLister.swift */; };
@@ -216,6 +217,7 @@
 		E2F24E498E26D5EEA5145569 /* SQLiteReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SQLiteReader.swift; path = SQLiteReader.swift; sourceTree = "<group>"; };
 		E6304B489ED85854B61F14BF /* ArchiveNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ArchiveNode.swift; path = ArchiveNode.swift; sourceTree = "<group>"; };
 		ECA647A8A68766C74BF3427C /* FilzerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FilzerApp.swift; path = FilzerApp.swift; sourceTree = "<group>"; };
+		EE7C4E1C96725B9CDED802B2 /* PathNavigatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PathNavigatorView.swift; path = PathNavigatorView.swift; sourceTree = "<group>"; };
 		F16246FC8D42409678C2E1A7 /* PasteboardBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PasteboardBanner.swift; path = PasteboardBanner.swift; sourceTree = "<group>"; };
 		F4A54A6884CFD5AFDF1DF177 /* FileAssociationsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileAssociationsSettingsView.swift; path = FileAssociationsSettingsView.swift; sourceTree = "<group>"; };
 		F622448B9C320FBB65A3CE4C /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClipboardStore.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
@@ -486,6 +488,7 @@
 				CD4B4EB8BBA239463860E5F8 /* FileBrowserViewModel.swift */,
 				1D5F495A90F980008B9401F9 /* FileRowContextMenu.swift */,
 				40764E5794CD40FCEB1A2EE1 /* FileViewerRoute.swift */,
+				EE7C4E1C96725B9CDED802B2 /* PathNavigatorView.swift */,
 			);
 			name = Browser;
 			path = Browser;
@@ -822,6 +825,7 @@
 				B0B6465E948D9668C389C868 /* GoogleDriveProvider.swift in Sources */,
 				9A0D4723937E545E56C48204 /* PKCE.swift in Sources */,
 				53874C31804BB68632418186 /* AddBookmarkView.swift in Sources */,
+				91C64CB8AC9455767AFAB84D /* PathNavigatorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

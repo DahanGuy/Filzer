@@ -22,14 +22,13 @@ struct FileBrowserView: View {
 	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
 
 	@StateObject private var viewModel: FileBrowserViewModel
-	@FocusState private var isSearchFieldFocused: Bool
+	@Environment(\.isSearching) private var isSearching
+	@Environment(\.dismissSearch) private var dismissSearch
 	@State private var searchQuery = ""
 	@State private var searchResults: [FileNode] = []
 	@State private var isSearchLoading = false
 	@State private var searchTask: Task<Void, Never>?
-	@State private var isPathInputMode = false
-	@State private var pathSuggestions: [String] = []
-	@State private var pathSuggestionsTask: Task<Void, Never>?
+	@State private var showingPathNavigator = false
 
 	@State private var showingImporter = false
 	@State private var infoNode: FileNode?
@@ -68,7 +67,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearchFieldFocused || (!isPathInputMode && isSearchActive) {
+			if isSearching {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -79,9 +78,10 @@ struct FileBrowserView: View {
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
+		.searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
-		.safeAreaInset(edge: .bottom, spacing: 0) { bottomSearchBar }
+		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -145,18 +145,13 @@ struct FileBrowserView: View {
 		.popover(isPresented: $showingSettings) {
 			SettingsView()
 		}
-		.onChange(of: searchQuery) { _ in
-			guard isSearchFieldFocused else { return }
-			if isPathInputMode {
-				schedulePathSuggestions()
-			} else {
-				scheduleSearch()
-			}
+		.sheet(isPresented: $showingPathNavigator) {
+			NavigationView {
+				PathNavigatorView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1) })
+			}.navigationViewStyle(.stack)
 		}
-		.onChange(of: isSearchFieldFocused) { focused in
-			if focused, isPathInputMode {
-				schedulePathSuggestions()
-			}
+		.onChange(of: searchQuery) { _ in
+			scheduleSearch()
 		}
 		.task {
 			viewModel.includeHidden = settings.showHiddenFiles
@@ -180,7 +175,7 @@ struct FileBrowserView: View {
 
 	/// A single hidden `NavigationLink` driving programmatic push, plus a captured
 	/// reference to this screen's own `UINavigationController` (see
-	/// `NavigationControllerAccessor`) — used by the search bar's path-input mode and
+	/// `NavigationControllerAccessor`) — used by `PathNavigatorView`'s "Go" action and
 	/// by tapping a folder inside the Disks/Bookmarks/Recents flyouts (which dismiss
 	/// themselves and hand the target back here via `onNavigate`, so the folder opens
 	/// in *this* screen's own stack instead of nesting inside the flyout's).
@@ -212,8 +207,8 @@ struct FileBrowserView: View {
 	/// sandbox container. An Added Folder or remote connection's own root never
 	/// chains, matching Disks' own jumps: there's nothing reachable above it to walk
 	/// through, so a chain rooted there would just be a same-length detour, not a
-	/// meaningful "way you got there". Path-input jumps push `url` directly too - a
-	/// typed path isn't "the way you got there" the way a bookmark is.
+	/// meaningful "way you got there". `PathNavigatorView`'s "Go" jumps push `url`
+	/// directly too - a typed path isn't "the way you got there" the way a bookmark is.
 	///
 	/// A chain of more than one folder is pushed by reaching straight into this
 	/// screen's own `UINavigationController` (`pushChain`), never through a SwiftUI
@@ -226,8 +221,7 @@ struct FileBrowserView: View {
 	/// level has nothing to reconcile against and keeps using the plain, working
 	/// `pendingNavigation` path.
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
-		isPathInputMode = false
-		isSearchFieldFocused = false
+		dismissSearch()
 		searchQuery = ""
 		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
@@ -327,14 +321,10 @@ struct FileBrowserView: View {
 	}
 
 	/// Recursive (subfolders too) or flat (current folder only) per
-	/// `settings.recursiveSearch` - see `scheduleSearch`. Path-input mode shows live
-	/// autosuggest instead - the search field itself doubles as the path field, typed
-	/// or pasted directly, no separate readout needed.
+	/// `settings.recursiveSearch` - see `scheduleSearch`.
 	@ViewBuilder
 	private var searchResultsContent: some View {
-		if isPathInputMode {
-			pathSuggestionsContent
-		} else if isSearchLoading {
+		if isSearchLoading {
 			ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
 		} else if searchResults.isEmpty {
 			EmptyStateView(icon: "magnifyingglass", title: "No Results")
@@ -344,76 +334,11 @@ struct FileBrowserView: View {
 		}
 	}
 
-	@ViewBuilder
-	private var pathSuggestionsContent: some View {
-		if pathSuggestions.isEmpty {
-			EmptyStateView(icon: "folder", title: "No Matching Folders")
-		} else {
-			List(pathSuggestions, id: \.self) { suggestion in
-				Button {
-					navigate(to: URL(fileURLWithPath: suggestion), displayName: nil)
-				} label: {
-					Label(suggestion, systemImage: "folder")
-				}
-			}
-			.listStyle(.plain)
-		}
-	}
-
-	/// Only pre-fills the field's text and switches its icon/placeholder - never
-	/// forces focus or fetches suggestions itself. Autosuggest only starts once the
-	/// user actually taps into the field (see `searchOrPathField`'s tap gesture and
-	/// the `isSearchFieldFocused` onChange above).
-	private func togglePathInputMode() {
-		isPathInputMode.toggle()
-		isSearchFieldFocused = false
-		pathSuggestions = []
-		searchQuery = isPathInputMode ? rootURL.path : ""
-	}
-
-	/// Clears the field and fully exits search/path-input mode - the bottom bar's own
-	/// "x" button, standing in for the Cancel a native `.searchable` field would give.
-	private func clearSearch() {
-		searchQuery = ""
-		isSearchFieldFocused = false
-		if isPathInputMode {
-			isPathInputMode = false
-			pathSuggestions = []
-		}
-	}
-
-	/// Lists the parent of whatever path is currently typed and keeps folders whose
-	/// name starts with the partial last segment — an inaccessible parent silently
-	/// yields no suggestions rather than surfacing an error popup.
-	private func schedulePathSuggestions() {
-		pathSuggestionsTask?.cancel()
-		let typed = searchQuery
-		let includeHidden = settings.showHiddenFiles
-		pathSuggestionsTask = Task {
-			try? await Task.sleep(nanoseconds: 200_000_000)
-			guard !Task.isCancelled else { return }
-			let parentPath = (typed as NSString).deletingLastPathComponent
-			let partial = (typed as NSString).lastPathComponent
-			let parentURL = URL(fileURLWithPath: parentPath.isEmpty ? "/" : parentPath)
-			guard let children = try? await FileSystem.current.listDirectory(at: parentURL, includeHidden: includeHidden) else {
-				guard !Task.isCancelled else { return }
-				pathSuggestions = []
-				return
-			}
-			guard !Task.isCancelled else { return }
-			let matches = children
-				.filter { $0.isDirectory && (partial.isEmpty || $0.name.lowercased().hasPrefix(partial.lowercased())) }
-				.map { parentURL.appendingPathComponent($0.name).path }
-				.sorted()
-			pathSuggestions = Array(matches.prefix(30))
-		}
-	}
-
 	/// Recursive (subfolders too) or flat (current folder only) per
-	/// `settings.recursiveSearch`, debounced the same as `schedulePathSuggestions`.
-	/// Any failure - an inaccessible folder anywhere in a recursive walk, or the
-	/// current folder itself going unreadable mid-session - is skipped silently
-	/// rather than surfacing an error popup; the user just sees fewer/no results.
+	/// `settings.recursiveSearch`, debounced 300ms. Any failure - an inaccessible
+	/// folder anywhere in a recursive walk, or the current folder itself going
+	/// unreadable mid-session - is skipped silently rather than surfacing an error
+	/// popup; the user just sees fewer/no results.
 	private func scheduleSearch() {
 		searchTask?.cancel()
 		guard isSearchActive else {
@@ -620,76 +545,17 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// The search bar itself, at the bottom - not `.searchable`'s default top
-	/// placement - a capsule field with a separate, standalone circular button beside
-	/// it (same layout Contacts' own bottom search bar uses for its "+", just with a
-	/// path-mode icon instead). Backed by PartyUI's `OverlayBackground` - its
-	/// progressive blur plus keyboard-aware bottom padding is exactly the "anything
-	/// that uses safeAreaInset(edge: .bottom)" case its own docs describe.
-	/// Deliberately a `.safeAreaInset`, not a `ToolbarItem(placement: .bottomBar)`:
-	/// the toolbar version was prone to rendering a stray, blank button-shaped
-	/// artifact at the bottom under some content-change sequences - a known category
-	/// of `ToolbarItem`/`.bottomBar` flakiness when its content changes shape
-	/// dynamically. A safe-area inset is a plain view modifier on the main content,
-	/// entirely outside the toolbar layout system, so there's nothing left for it to
-	/// misrender. While selecting, this slot hosts `selectionActionBar` instead -
-	/// same container, different content, never both.
+	/// This slot only ever hosts `selectionActionBar`, while multi-selecting - a
+	/// plain folder listing has nothing to put here. Search now lives entirely in
+	/// `.searchable()` (native, top-placed) instead of a custom bottom bar; see the
+	/// removed `searchOrPathField`/`modeToggleButton` history for why that was
+	/// replaced - a hand-rolled dual-mode field fighting focus/tap/clear-button state
+	/// was a persistent source of bugs that a native, UIKit-owned control doesn't have.
 	@ViewBuilder
-	private var bottomSearchBar: some View {
+	private var bottomBar: some View {
 		if viewModel.isSelecting {
 			selectionActionBar
-		} else {
-			HStack(spacing: 10) {
-				searchOrPathField
-				modeToggleButton
-			}
-			.modifier(OverlayBackground())
 		}
-	}
-
-	/// Both `searchOrPathField` and `modeToggleButton` share the exact same PartyUI
-	/// recipe - `TextFieldBackground`/`TranslucentButtonStyle` both apply an identical
-	/// unconfigurable `.padding()` before filling their shape - so the pill and the
-	/// circle land at the same height by construction, not by hand-tuning two
-	/// separate frames to match. `.contentShape` + `.onTapGesture` makes the *entire*
-	/// pill focus the field, not just wherever `TextField`'s own narrow hit-testing
-	/// region happens to land - taps landing directly on the text itself still reach
-	/// `TextField` first and behave normally (placing the cursor); everything else in
-	/// the pill (the icon, the padding) falls through to this gesture instead of
-	/// doing nothing.
-	private var searchOrPathField: some View {
-		HStack(spacing: 8) {
-			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
-				.foregroundStyle(.secondary)
-			TextField(isPathInputMode ? "Path" : "Search", text: $searchQuery)
-				.focused($isSearchFieldFocused)
-				.autocapitalization(.none)
-				.disableAutocorrection(true)
-				.onSubmit {
-					if isPathInputMode { navigate(to: URL(fileURLWithPath: searchQuery), displayName: nil) }
-				}
-			if isSearchFieldFocused && !searchQuery.isEmpty {
-				Button {
-					clearSearch()
-				} label: {
-					Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-				}
-				.buttonStyle(.plain)
-			}
-		}
-		.modifier(TextFieldBackground(shape: Capsule()))
-		.contentShape(Capsule())
-		.onTapGesture { isSearchFieldFocused = true }
-	}
-
-	private var modeToggleButton: some View {
-		Button {
-			togglePathInputMode()
-		} label: {
-			Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right")
-				.font(.system(size: 17, weight: .semibold))
-		}
-		.buttonStyle(TranslucentButtonStyle(color: Color(.label), shape: Circle(), useFullWidth: false))
 	}
 
 	@ViewBuilder
@@ -733,7 +599,7 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// The multi-select equivalent of `bottomSearchBar` - Copy/Cut/Compress/Share/
+	/// The multi-select equivalent of `bottomBar` - Copy/Cut/Compress/Share/
 	/// Delete as a row of circular icon buttons in the same `OverlayBackground` bar
 	/// treatment, instead of cramming them into a top-toolbar ellipsis menu. Every
 	/// button reuses `TranslucentButtonStyle`'s exact recipe - `Compress` has to
@@ -804,6 +670,11 @@ struct FileBrowserView: View {
 			} label: {
 				Label("Select", systemImage: "checkmark.circle")
 			}
+			Button {
+				showingPathNavigator = true
+			} label: {
+				Label("Go to Folder", systemImage: "arrow.forward.to.line")
+			}
 			Menu {
 				addMenuItems
 			} label: {
@@ -826,6 +697,7 @@ struct FileBrowserView: View {
 			Button { showingDisks = true } label: { Label("Disks", systemImage: "externaldrive") }
 			Button { showingBookmarks = true } label: { Label("Bookmarks", systemImage: "bookmark") }
 			Button { showingRecents = true } label: { Label("Recents", systemImage: "clock") }
+			Button { showingPathNavigator = true } label: { Label("Go to Folder", systemImage: "arrow.forward.to.line") }
 			Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
 		} label: {
 			Image(systemName: "ellipsis.circle")
