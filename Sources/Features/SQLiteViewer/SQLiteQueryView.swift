@@ -1,3 +1,4 @@
+import PartyUI
 import SwiftUI
 
 /// Sheet content behind `SQLiteViewerView`'s "Run SQL" button — a free-form query editor
@@ -31,18 +32,9 @@ struct SQLiteQueryView: View {
 					.padding()
 
 				Button(action: runQuery) {
-					if isRunning {
-						HStack {
-							Spacer()
-							ProgressView()
-							Spacer()
-						}
-					} else {
-						Text("Run")
-							.frame(maxWidth: .infinity)
-					}
+					ButtonLabel(text: "Run", icon: isRunning ? "showMeProgressPlease" : "play.fill")
 				}
-				.buttonStyle(.borderedProminent)
+				.buttonStyle(FancyButtonStyle())
 				.disabled(!canRun)
 				.padding(.horizontal)
 				.padding(.bottom)

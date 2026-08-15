@@ -1,3 +1,4 @@
+import PartyUI
 import SwiftUI
 
 /// Filza's "Zip Viewer", generalized to every format `ArchiveFormat` recognizes
@@ -34,7 +35,6 @@ struct ArchiveBrowserLevelView: View {
 	@State private var extractingEntryID: String?
 	@State private var pendingNode: FileNode?
 	@State private var isExtractingAll = false
-	@State private var extractedFolderName: String?
 
 	@State private var showingPasswordPrompt = false
 	@State private var passwordInput = ""
@@ -81,11 +81,6 @@ struct ArchiveBrowserLevelView: View {
 		} message: {
 			Text("\"\(archiveURL.lastPathComponent)\" is password-protected.")
 		}
-		.alert("Extraction Complete", isPresented: extractedAllAlertBinding) {
-			Button("OK", role: .cancel) {}
-		} message: {
-			Text("Extracted to \"\(extractedFolderName ?? "")\".")
-		}
 		.background(
 			NavigationLink(destination: pendingNodeDestination, isActive: pendingNodeActiveBinding) { EmptyView() }
 		)
@@ -130,10 +125,6 @@ struct ArchiveBrowserLevelView: View {
 
 	private var pendingNodeActiveBinding: Binding<Bool> {
 		Binding(get: { pendingNode != nil }, set: { if !$0 { pendingNode = nil } })
-	}
-
-	private var extractedAllAlertBinding: Binding<Bool> {
-		Binding(get: { extractedFolderName != nil }, set: { if !$0 { extractedFolderName = nil } })
 	}
 
 	// MARK: - Loading and extraction
@@ -188,7 +179,7 @@ struct ArchiveBrowserLevelView: View {
 				let folderName = ArchiveFormat.baseName(for: archiveURL)
 				let destination = archiveURL.deletingLastPathComponent().appendingPathComponent(folderName)
 				try await FileSystem.current.extractArchive(archiveURL, toDirectory: destination, password: password)
-				extractedFolderName = destination.lastPathComponent
+				Alertinator.shared.alert(title: "Extraction Complete", body: "Extracted to \"\(destination.lastPathComponent)\".")
 			} catch {
 				handleArchiveError(error) { extractAll() }
 			}
