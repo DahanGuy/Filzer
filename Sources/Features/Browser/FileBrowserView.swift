@@ -81,7 +81,7 @@ struct FileBrowserView: View {
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
-		.toolbar { toolbarBottom }
+		.safeAreaInset(edge: .bottom, spacing: 0) { bottomSearchBar }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -618,24 +618,32 @@ struct FileBrowserView: View {
 
 	/// The search bar itself, at the bottom - not `.searchable`'s default top
 	/// placement - with the mode-toggle button beside it, exactly the layout Filza
-	/// itself uses. Reachable and typeable regardless of the current folder's content.
-	@ToolbarContentBuilder
-	private var toolbarBottom: some ToolbarContent {
-		ToolbarItem(placement: .bottomBar) {
-			if !viewModel.isSelecting {
-				HStack(spacing: 10) {
-					searchField
-					Button {
-						togglePathInputMode()
-					} label: {
-						Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
-					}
+	/// itself (and plenty of other apps) use for this. Deliberately a
+	/// `.safeAreaInset`, not a `ToolbarItem(placement: .bottomBar)`: the toolbar
+	/// version was prone to rendering a stray, blank button-shaped artifact at the
+	/// bottom under some content-change sequences - a known category of
+	/// `ToolbarItem`/`.bottomBar` flakiness when its content changes shape
+	/// dynamically. A safe-area inset is a plain view modifier on the main content,
+	/// entirely outside the toolbar layout system, so there's nothing left for it to
+	/// misrender.
+	@ViewBuilder
+	private var bottomSearchBar: some View {
+		if !viewModel.isSelecting {
+			HStack(spacing: 10) {
+				searchOrPathField
+				Button {
+					togglePathInputMode()
+				} label: {
+					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
 				}
 			}
+			.padding(.horizontal)
+			.padding(.vertical, 8)
+			.background(.bar)
 		}
 	}
 
-	private var searchField: some View {
+	private var searchOrPathField: some View {
 		HStack(spacing: 6) {
 			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
 				.foregroundStyle(.secondary)
