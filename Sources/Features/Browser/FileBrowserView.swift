@@ -22,8 +22,7 @@ struct FileBrowserView: View {
 	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
 
 	@StateObject private var viewModel: FileBrowserViewModel
-	@Environment(\.isSearching) private var isSearching
-	@Environment(\.dismissSearch) private var dismissSearch
+	@FocusState private var isSearchFieldFocused: Bool
 	@State private var searchQuery = ""
 	@State private var searchResults: [FileNode] = []
 	@State private var isSearchLoading = false
@@ -67,7 +66,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearching {
+			if isSearchFieldFocused || isSearchActive {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -78,7 +77,6 @@ struct FileBrowserView: View {
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
-		.searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
@@ -221,7 +219,7 @@ struct FileBrowserView: View {
 	/// level has nothing to reconcile against and keeps using the plain, working
 	/// `pendingNavigation` path.
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
-		dismissSearch()
+		isSearchFieldFocused = false
 		searchQuery = ""
 		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
@@ -545,17 +543,54 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// This slot only ever hosts `selectionActionBar`, while multi-selecting - a
-	/// plain folder listing has nothing to put here. Search now lives entirely in
-	/// `.searchable()` (native, top-placed) instead of a custom bottom bar; see the
-	/// removed `searchOrPathField`/`modeToggleButton` history for why that was
-	/// replaced - a hand-rolled dual-mode field fighting focus/tap/clear-button state
-	/// was a persistent source of bugs that a native, UIKit-owned control doesn't have.
+	/// While selecting, this hosts `selectionActionBar`. Otherwise, a single search
+	/// field - no mode toggle, no path-input dual-purpose (that's `PathNavigatorView`,
+	/// a separate sheet reachable from the overflow menu). Local `@FocusState`/
+	/// `@State`, not `.searchable()`: this needs bottom placement, which
+	/// `.searchable()` can't do pre-iOS 26, and reading `.searchable()`'s
+	/// `\.isSearching` from the very view that attaches `.searchable()` never sees the
+	/// updated value - it only propagates to genuine child views - which is exactly
+	/// why that attempt never visibly showed results despite `scheduleSearch()`
+	/// running correctly underneath. Plain local state has no such restriction.
 	@ViewBuilder
 	private var bottomBar: some View {
 		if viewModel.isSelecting {
 			selectionActionBar
+		} else {
+			searchBar
 		}
+	}
+
+	/// `.contentShape` + `.onTapGesture` makes the *entire* pill focus the field, not
+	/// just wherever `TextField`'s own narrow hit-testing region happens to land -
+	/// taps landing directly on the text itself still reach `TextField` first and
+	/// behave normally (placing the cursor).
+	private var searchBar: some View {
+		HStack(spacing: 8) {
+			Image(systemName: "magnifyingglass")
+				.foregroundStyle(.secondary)
+			TextField("Search", text: $searchQuery)
+				.focused($isSearchFieldFocused)
+				.autocapitalization(.none)
+				.disableAutocorrection(true)
+			if isSearchFieldFocused && !searchQuery.isEmpty {
+				Button {
+					clearSearch()
+				} label: {
+					Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+				}
+				.buttonStyle(.plain)
+			}
+		}
+		.modifier(TextFieldBackground(shape: Capsule()))
+		.contentShape(Capsule())
+		.onTapGesture { isSearchFieldFocused = true }
+		.modifier(OverlayBackground())
+	}
+
+	private func clearSearch() {
+		searchQuery = ""
+		isSearchFieldFocused = false
 	}
 
 	@ViewBuilder
@@ -599,7 +634,7 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// The multi-select equivalent of `bottomBar` - Copy/Cut/Compress/Share/
+	/// `bottomBar`'s multi-select branch - Copy/Cut/Compress/Share/
 	/// Delete as a row of circular icon buttons in the same `OverlayBackground` bar
 	/// treatment, instead of cramming them into a top-toolbar ellipsis menu. Every
 	/// button reuses `TranslucentButtonStyle`'s exact recipe - `Compress` has to
