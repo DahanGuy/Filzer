@@ -64,6 +64,16 @@ final class BookmarksStore: ObservableObject {
 		save()
 	}
 
+	/// Updates a plain bookmark's path and display name in place. A no-op for an
+	/// Added Folder (`securityScopedBookmarkData != nil`) - its path is tied to a
+	/// document-picker grant, not a typed string, so it isn't editable this way.
+	func update(_ entry: BookmarkEntry, url: URL, displayName: String) {
+		guard entry.securityScopedBookmarkData == nil, let index = entries.firstIndex(where: { $0.id == entry.id }) else { return }
+		entries[index].url = url
+		entries[index].displayName = displayName
+		save()
+	}
+
 	func toggle(url: URL, displayName: String) {
 		if let existing = entries.first(where: { $0.url.standardizedFileURL == url.standardizedFileURL }) {
 			remove(existing)

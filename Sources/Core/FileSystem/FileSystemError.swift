@@ -11,6 +11,11 @@ enum FileSystemError: LocalizedError {
 	case operationFailed(String)
 	case cancelled
 	case unsupported(String)
+	/// Thrown by `ArchiveService.listEntries`/`extract`/`extractEntry` when an archive
+	/// needs a password that's missing or wrong - the one `FileSystemError` case the UI
+	/// (`ArchiveBrowserView`) specifically catches to prompt for a password and retry,
+	/// rather than just surfacing it as a dead-end failure.
+	case archivePasswordRequired(URL)
 	/// An engine returned a result shape that doesn't match the operation it was asked
 	/// to perform — always a bug in that `FileSystemEngine`, never a user-facing failure.
 	case unexpectedResult
@@ -33,6 +38,8 @@ enum FileSystemError: LocalizedError {
 			return "The operation was cancelled."
 		case .unsupported(let message):
 			return message
+		case .archivePasswordRequired(let url):
+			return "\"\(url.lastPathComponent)\" is password-protected."
 		case .unexpectedResult:
 			return "Something went wrong performing that action."
 		}

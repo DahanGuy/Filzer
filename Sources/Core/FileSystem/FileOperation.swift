@@ -30,9 +30,9 @@ enum FileOperation {
 	case setPermissions([URL], posixPermissions: Int16, recursive: Bool)
 	case calculateSize(URL)
 	case compressItems([URL], to: URL)
-	case extractArchive(URL, toDirectory: URL)
-	case listArchiveEntries(URL)
-	case extractArchiveEntry(archive: URL, entryPath: String, to: URL)
+	case extractArchive(URL, toDirectory: URL, password: String?)
+	case listArchiveEntries(URL, password: String?)
+	case extractArchiveEntry(archive: URL, entryPath: String, to: URL, password: String?)
 	case search(root: URL, query: String, includeHidden: Bool)
 	case volumeInfo(URL)
 }

@@ -6,6 +6,7 @@ import UIKit
 /// downsized thumbnail for images once one loads.
 struct FileIconView: View {
 	let node: FileNode
+	var size: CGFloat = Theme.rowIconSize
 
 	@State private var thumbnail: UIImage?
 
@@ -15,13 +16,13 @@ struct FileIconView: View {
 				Image(uiImage: thumbnail)
 					.resizable()
 					.aspectRatio(contentMode: .fill)
-					.frame(width: Theme.rowIconSize, height: Theme.rowIconSize)
-					.clipShape(RoundedRectangle(cornerRadius: Theme.rowIconCornerRadius))
+					.frame(width: size, height: size)
+					.clipShape(RoundedRectangle(cornerRadius: Theme.rowIconCornerRadius * (size / Theme.rowIconSize)))
 			} else {
 				Image(systemName: FileClassifier.systemImageName(for: node))
-					.font(.system(size: 18))
+					.font(.system(size: size * 0.6))
 					.foregroundStyle(Theme.color(for: FileClassifier.category(for: node)))
-					.frame(width: Theme.rowIconSize, height: Theme.rowIconSize)
+					.frame(width: size, height: size)
 			}
 		}
 		.task(id: node.url) {

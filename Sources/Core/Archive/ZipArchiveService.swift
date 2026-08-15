@@ -18,12 +18,12 @@ struct ZIPFoundationArchiveService: ArchiveService {
 		}
 	}
 
-	func extract(_ archive: URL, toDirectory destination: URL) throws {
+	func extract(_ archive: URL, toDirectory destination: URL, password: String?) throws {
 		try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
 		try FileManager.default.unzipItem(at: archive, to: destination)
 	}
 
-	func listEntries(_ archiveURL: URL) throws -> [ArchiveEntry] {
+	func listEntries(_ archiveURL: URL, password: String?) throws -> [ArchiveEntry] {
 		let archive = try Archive(url: archiveURL, accessMode: .read)
 		return archive.map { entry in
 			ArchiveEntry(
@@ -35,7 +35,7 @@ struct ZIPFoundationArchiveService: ArchiveService {
 		}
 	}
 
-	func extractEntry(_ entryPath: String, from archiveURL: URL, to destination: URL) throws {
+	func extractEntry(_ entryPath: String, from archiveURL: URL, to destination: URL, password: String?) throws {
 		let archive = try Archive(url: archiveURL, accessMode: .read)
 		guard let entry = archive[entryPath] else {
 			throw FileSystemError.notFound(archiveURL.appendingPathComponent(entryPath))

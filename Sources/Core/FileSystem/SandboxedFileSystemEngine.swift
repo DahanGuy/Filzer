@@ -121,17 +121,17 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 			try await compressItems(urls, to: destination)
 			return .done
 
-		case .extractArchive(let archive, let destination):
-			try await extractArchive(archive, toDirectory: destination)
+		case .extractArchive(let archive, let destination, let password):
+			try await extractArchive(archive, toDirectory: destination, password: password)
 			return .done
 
-		case .listArchiveEntries(let archive):
+		case .listArchiveEntries(let archive, let password):
 			let (localArchive, isTemporary) = try await materializeLocally(archive)
 			defer { if isTemporary { try? FileManager.default.removeItem(at: localArchive) } }
-			return .archiveEntries(try archiveService.listEntries(localArchive))
+			return .archiveEntries(try archiveService.listEntries(localArchive, password: password))
 
-		case .extractArchiveEntry(let archive, let entryPath, let destination):
-			try await extractArchiveEntry(entryPath, from: archive, to: destination)
+		case .extractArchiveEntry(let archive, let entryPath, let destination, let password):
+			try await extractArchiveEntry(entryPath, from: archive, to: destination, password: password)
 			return .done
 
 		case .search(let root, let query, let includeHidden):
@@ -318,31 +318,31 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		}
 	}
 
-	private func extractArchive(_ archive: URL, toDirectory destination: URL) async throws {
+	private func extractArchive(_ archive: URL, toDirectory destination: URL, password: String?) async throws {
 		let (localArchive, isTemporary) = try await materializeLocally(archive)
 		defer { if isTemporary { try? FileManager.default.removeItem(at: localArchive) } }
 
 		if RemoteURL.isRemote(destination) {
 			let tempOutput = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-			try archiveService.extract(localArchive, toDirectory: tempOutput)
+			try archiveService.extract(localArchive, toDirectory: tempOutput, password: password)
 			defer { try? FileManager.default.removeItem(at: tempOutput) }
 			try await uploadLocalTree(from: tempOutput, to: destination)
 		} else {
-			try archiveService.extract(localArchive, toDirectory: destination)
+			try archiveService.extract(localArchive, toDirectory: destination, password: password)
 		}
 	}
 
-	private func extractArchiveEntry(_ entryPath: String, from archive: URL, to destination: URL) async throws {
+	private func extractArchiveEntry(_ entryPath: String, from archive: URL, to destination: URL, password: String?) async throws {
 		let (localArchive, isTemporary) = try await materializeLocally(archive)
 		defer { if isTemporary { try? FileManager.default.removeItem(at: localArchive) } }
 
 		if RemoteURL.isRemote(destination) {
 			let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-			try archiveService.extractEntry(entryPath, from: localArchive, to: tempFile)
+			try archiveService.extractEntry(entryPath, from: localArchive, to: tempFile, password: password)
 			defer { try? FileManager.default.removeItem(at: tempFile) }
 			try await writeBytes(try Data(contentsOf: tempFile), to: destination)
 		} else {
-			try archiveService.extractEntry(entryPath, from: localArchive, to: destination)
+			try archiveService.extractEntry(entryPath, from: localArchive, to: destination, password: password)
 		}
 	}
 

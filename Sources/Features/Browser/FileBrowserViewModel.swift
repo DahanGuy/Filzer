@@ -112,11 +112,15 @@ final class FileBrowserViewModel: ObservableObject {
 	}
 
 	/// Extracts an archive in-place into a new sibling folder named after it — for any
-	/// format `ArchiveFormat` recognizes, not just `.zip`.
-	func extractHere(_ node: FileNode) async {
+	/// format `ArchiveFormat` recognizes, not just `.zip`. Throws directly (unlike
+	/// every other mutation here, which swallows into `errorMessage` via `run`) so the
+	/// caller can catch `FileSystemError.archivePasswordRequired` specifically, prompt
+	/// for one, and retry - `run` has no way to surface that distinction.
+	func extractHere(_ node: FileNode, password: String? = nil) async throws {
 		let name = Self.uniqueFolderName(baseName: ArchiveFormat.baseName(for: node.url), existingNames: Set(nodes.map(\.name)))
 		let destination = rootURL.appendingPathComponent(name)
-		await run { try await FileSystem.current.extractArchive(node.url, toDirectory: destination) }
+		try await FileSystem.current.extractArchive(node.url, toDirectory: destination, password: password)
+		await reload()
 	}
 
 	func importItems(_ urls: [URL]) async {
@@ -128,10 +132,10 @@ final class FileBrowserViewModel: ObservableObject {
 		}
 	}
 
-	func compress(_ urls: [URL]) async {
+	func compress(_ urls: [URL], format: ArchiveFormat) async {
 		guard !urls.isEmpty else { return }
 		let base = urls.count == 1 ? urls[0].deletingPathExtension().lastPathComponent : "Archive"
-		let name = Self.uniqueFileName(baseName: base, extension: "zip", existingNames: Set(nodes.map(\.name)))
+		let name = Self.uniqueFileName(baseName: base, extension: format.fileExtension, existingNames: Set(nodes.map(\.name)))
 		let destination = rootURL.appendingPathComponent(name)
 		await run { try await FileSystem.current.compressItems(urls, to: destination) }
 	}

@@ -87,7 +87,7 @@ struct DisksFlyoutView: View {
 					Button {
 						showingAddRemote = true
 					} label: {
-						Label("Add Network Location", systemImage: "network.badge.plus")
+						Label("Add Network Location", systemImage: "cloud.fill")
 					}
 				} label: {
 					Image(systemName: "plus")

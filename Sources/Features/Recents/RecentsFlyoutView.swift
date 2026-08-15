@@ -1,13 +1,18 @@
 import SwiftUI
 
 /// The Recents flyout — every file opened through `FileViewerRoute`, most recent
-/// first (Filza's Recents section). Missing/deleted targets are hidden rather than
-/// shown as broken rows, since unlike Bookmarks this list isn't hand-curated.
+/// first (Filza's Recents section). A target that fails to resolve (deleted, or a
+/// security-scoped location whose grant didn't survive a relaunch) still shows its
+/// own row, marked inaccessible, instead of silently vanishing - the previous
+/// behavior left the list looking empty or broken even though entries existed.
 struct RecentsFlyoutView: View {
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var recents: RecentsStore
 
+	/// Resolved node per entry, keyed by `RecentEntry.id`. An id present in
+	/// `failedIDs` instead means resolution finished but found nothing usable.
 	@State private var nodes: [UUID: FileNode] = [:]
+	@State private var failedIDs: Set<UUID> = []
 
 	private static let relativeFormatter: RelativeDateTimeFormatter = {
 		let formatter = RelativeDateTimeFormatter()
@@ -40,32 +45,55 @@ struct RecentsFlyoutView: View {
 
 	@ViewBuilder
 	private func row(for entry: RecentEntry) -> some View {
-		if let node = nodes[entry.id] {
-			NavigationLink(destination: FileViewerRoute(node: node)) {
+		Group {
+			if let node = nodes[entry.id] {
+				NavigationLink(destination: FileViewerRoute(node: node)) {
+					HStack {
+						FileRow(node: node)
+						Spacer()
+						Text(Self.relativeFormatter.localizedString(for: entry.openedAt, relativeTo: Date()))
+							.font(.caption)
+							.foregroundStyle(.tertiary)
+					}
+				}
+			} else if failedIDs.contains(entry.id) {
+				HStack(spacing: 12) {
+					Image(systemName: "exclamationmark.triangle")
+						.foregroundStyle(.secondary)
+						.frame(width: Theme.rowIconSize, height: Theme.rowIconSize)
+					VStack(alignment: .leading, spacing: 2) {
+						Text(entry.url.lastPathComponent)
+							.foregroundStyle(Color(.label))
+						Text("No longer accessible")
+							.font(.caption)
+							.foregroundStyle(.secondary)
+					}
+				}
+			} else {
 				HStack {
-					FileRow(node: node)
-					Spacer()
-					Text(Self.relativeFormatter.localizedString(for: entry.openedAt, relativeTo: Date()))
-						.font(.caption)
-						.foregroundStyle(.tertiary)
+					ProgressView()
+					Text(entry.url.lastPathComponent).foregroundStyle(.secondary)
 				}
 			}
-			.swipeActions(edge: .trailing) {
-				Button(role: .destructive) {
-					recents.remove(entry)
-				} label: {
-					Label("Remove", systemImage: "trash")
-				}
+		}
+		.swipeActions(edge: .trailing) {
+			Button(role: .destructive) {
+				recents.remove(entry)
+			} label: {
+				Label("Remove", systemImage: "trash")
 			}
-			.task(id: entry.id) {
-				await resolveNode(for: entry)
-			}
-		} else {
-			EmptyView().task(id: entry.id) { await resolveNode(for: entry) }
+		}
+		.task(id: entry.id) {
+			await resolveNode(for: entry)
 		}
 	}
 
 	private func resolveNode(for entry: RecentEntry) async {
-		nodes[entry.id] = try? await FileSystem.current.nodeInfo(at: entry.url)
+		guard nodes[entry.id] == nil, !failedIDs.contains(entry.id) else { return }
+		if let node = try? await FileSystem.current.nodeInfo(at: entry.url) {
+			nodes[entry.id] = node
+		} else {
+			failedIDs.insert(entry.id)
+		}
 	}
 }

@@ -37,6 +37,9 @@ struct FileBrowserView: View {
 	@State private var pendingDeleteURLs: [URL] = []
 	@State private var showingDeleteConfirmation = false
 	@State private var pendingNavigation: PendingNavigation?
+	@State private var archivePasswordPromptURL: URL?
+	@State private var archivePasswordInput = ""
+	@State private var pendingArchivePasswordRetry: (() -> Void)?
 
 	@State private var showingDisks = false
 	@State private var showingBookmarks = false
@@ -111,6 +114,20 @@ struct FileBrowserView: View {
 				}
 			}
 			Button("Cancel", role: .cancel) {}
+		}
+		.alert(
+			"Password Required",
+			isPresented: Binding(get: { archivePasswordPromptURL != nil }, set: { if !$0 { archivePasswordPromptURL = nil } })
+		) {
+			SecureField("Password", text: $archivePasswordInput)
+			Button("Cancel", role: .cancel) { pendingArchivePasswordRetry = nil }
+			Button("Unlock") {
+				let retry = pendingArchivePasswordRetry
+				pendingArchivePasswordRetry = nil
+				retry?()
+			}
+		} message: {
+			Text("\"\(archivePasswordPromptURL?.lastPathComponent ?? "")\" is password-protected.")
 		}
 		.popover(isPresented: $showingDisks) {
 			NavigationView {
@@ -198,11 +215,14 @@ struct FileBrowserView: View {
 		pendingNavigation = PendingNavigation(chain: chain, displayName: displayName)
 	}
 
-	/// The nearest known reachable root at or above `url`: the sandbox container, an
-	/// Added Folder, or a remote connection's own root. `nil` when nothing reachable
-	/// contains it.
+	/// The nearest known reachable root at or above `url`, most-specific first: an
+	/// Added Folder or remote connection's own root, the sandbox container, or - for
+	/// any plain local path none of those cover, e.g. a bookmark somewhere like
+	/// `/private/var/mobile` that sits *above* the sandbox container - the volume root
+	/// itself, so the chain always has somewhere to start from and never falls back to
+	/// a bare single-level push.
 	private func reachableRoot(containing url: URL) -> URL? {
-		var candidates = [URL(fileURLWithPath: NSHomeDirectory())]
+		var candidates = [URL(fileURLWithPath: "/"), URL(fileURLWithPath: NSHomeDirectory())]
 		candidates += bookmarks.entries
 			.filter { $0.securityScopedBookmarkData != nil }
 			.map { bookmarks.resolvedURL(for: $0) }
@@ -376,7 +396,7 @@ struct FileBrowserView: View {
 				.listStyle(.plain)
 		case .grid:
 			ScrollView {
-				LazyVGrid(columns: [GridItem(.adaptive(minimum: 92))], spacing: 20) {
+				LazyVGrid(columns: [GridItem(.adaptive(minimum: 104))], spacing: 14) {
 					ForEach(viewModel.nodes) { gridCell(for: $0) }
 				}
 				.padding()
@@ -466,25 +486,37 @@ struct FileBrowserView: View {
 	}
 
 	private func gridCellContent(_ node: FileNode) -> some View {
-		VStack(spacing: 6) {
+		let isSelected = viewModel.selection.contains(node.url)
+		return VStack(spacing: 8) {
 			ZStack(alignment: .topTrailing) {
-				FileIconView(node: node)
+				FileIconView(node: node, size: 52)
 					.opacity(node.isHidden ? 0.65 : 1)
+					.frame(width: 64, height: 64)
 				if viewModel.isSelecting {
-					Image(systemName: viewModel.selection.contains(node.url) ? "checkmark.circle.fill" : "circle")
-						.font(.caption)
-						.foregroundStyle(viewModel.selection.contains(node.url) ? Color.accentColor : Color(.tertiaryLabel))
-						.offset(x: 10, y: -6)
+					Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+						.symbolRenderingMode(.palette)
+						.foregroundStyle(.white, isSelected ? Color.accentColor : Color(.systemGray3))
+						.font(.system(size: 20))
+						.background(Circle().fill(Color(.systemBackground)).padding(2))
+						.offset(x: 6, y: -6)
 				}
 			}
+			.frame(height: 64)
+
 			Text(node.name)
 				.font(.caption)
 				.lineLimit(2)
 				.multilineTextAlignment(.center)
 				.foregroundStyle(node.isHidden ? Color(.secondaryLabel) : Color(.label))
+				.frame(height: 30, alignment: .top)
 		}
+		.padding(10)
 		.frame(maxWidth: .infinity)
-		.opacity(node.isHidden ? 0.92 : 1)
+		.background(
+			RoundedRectangle(cornerRadius: 14, style: .continuous)
+				.fill(isSelected ? Color.accentColor.opacity(0.15) : Color(.secondarySystemBackground))
+		)
+		.opacity(node.isHidden ? 0.85 : 1)
 	}
 
 	@ViewBuilder
@@ -498,8 +530,8 @@ struct FileBrowserView: View {
 			onDuplicate: { Task { await viewModel.duplicate(node) } },
 			onCopy: { clipboard.set([node.url], operation: .copy) },
 			onMove: { clipboard.set([node.url], operation: .move) },
-			onCompress: { Task { await viewModel.compress([node.url]) } },
-			onExtractHere: { Task { await viewModel.extractHere(node) } },
+			onCompress: { format in Task { await viewModel.compress([node.url], format: format) } },
+			onExtractHere: { extractArchiveHere(node) },
 			onShare: { presentMultiShareSheet(for: [node.url]) },
 			onCopyPath: { UIPasteboard.general.string = node.url.path },
 			onToggleBookmark: { bookmarks.toggle(url: node.url, displayName: node.name) },
@@ -628,13 +660,17 @@ struct FileBrowserView: View {
 				clipboard.set(Array(viewModel.selection), operation: .move)
 				viewModel.endSelecting()
 			} label: {
-				Label("Move", systemImage: "folder")
+				Label("Cut", systemImage: "scissors")
 			}
-			Button {
-				let urls = Array(viewModel.selection)
-				Task {
-					await viewModel.compress(urls)
-					viewModel.endSelecting()
+			Menu {
+				ForEach(ArchiveFormat.creatable, id: \.fileExtension) { format in
+					Button(format.title) {
+						let urls = Array(viewModel.selection)
+						Task {
+							await viewModel.compress(urls, format: format)
+							viewModel.endSelecting()
+						}
+					}
 				}
 			} label: {
 				Label("Compress", systemImage: "doc.zipper")
@@ -783,6 +819,23 @@ struct FileBrowserView: View {
 		Alertinator.shared.prompt(title: "Rename", placeholder: "Name", text: node.name) { name in
 			guard let name, !name.isEmpty, name != node.name else { return }
 			await viewModel.rename(node, to: name)
+		}
+	}
+
+	/// "Extract Here" from the context menu - unlike the interactive `ArchiveBrowserView`
+	/// (which has its own password prompt), this is a one-tap action, so a
+	/// password-protected archive needs its own retry loop right here.
+	private func extractArchiveHere(_ node: FileNode, password: String? = nil) {
+		Task {
+			do {
+				try await viewModel.extractHere(node, password: password)
+			} catch FileSystemError.archivePasswordRequired {
+				archivePasswordInput = password ?? ""
+				archivePasswordPromptURL = node.url
+				pendingArchivePasswordRetry = { extractArchiveHere(node, password: archivePasswordInput) }
+			} catch {
+				viewModel.errorMessage = error.localizedDescription
+			}
 		}
 	}
 }

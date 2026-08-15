@@ -8,15 +8,23 @@ enum DirectoryLister {
 	static func children(of directory: URL, includeHidden: Bool) throws -> [FileNode] {
 		let fileManager = FileManager.default
 		let names = try fileManager.contentsOfDirectory(atPath: directory.path)
+		let visibleNames = includeHidden ? names : names.filter { !$0.hasPrefix(".") }
 		var nodes: [FileNode] = []
-		nodes.reserveCapacity(names.count)
-		for name in names {
-			if !includeHidden && name.hasPrefix(".") { continue }
+		nodes.reserveCapacity(visibleNames.count)
+		for name in visibleNames {
 			let childURL = directory.appendingPathComponent(name)
 			if let node = try? FileNode.make(at: childURL) {
 				nodes.append(node)
 			}
 		}
-		return nodes
+		// `contentsOfDirectory` only lists names - it doesn't stat any of them, so a
+		// directory the sandbox denies real access to (e.g. iOS system paths like
+		// `/Developer`) can still enumerate names successfully while every individual
+		// `FileNode.make` above fails. Left alone that silently looks identical to a
+		// genuinely empty folder; surface it as the access error it actually is instead.
+		if !nodes.isEmpty || visibleNames.isEmpty {
+			return nodes
+		}
+		throw FileSystemError.accessDenied(directory)
 	}
 }

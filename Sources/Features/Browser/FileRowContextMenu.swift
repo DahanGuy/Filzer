@@ -12,7 +12,7 @@ struct FileRowContextMenuContent: View {
 	let onDuplicate: () -> Void
 	let onCopy: () -> Void
 	let onMove: () -> Void
-	let onCompress: () -> Void
+	let onCompress: (ArchiveFormat) -> Void
 	let onExtractHere: () -> Void
 	let onShare: () -> Void
 	let onCopyPath: () -> Void
@@ -47,7 +47,7 @@ struct FileRowContextMenuContent: View {
 				Label("Copy", systemImage: "doc.on.doc")
 			}
 			Button(action: onMove) {
-				Label("Move", systemImage: "folder")
+				Label("Cut", systemImage: "scissors")
 			}
 
 			if ArchiveFormat.isArchive(node.url) {
@@ -55,7 +55,11 @@ struct FileRowContextMenuContent: View {
 					Label("Extract Here", systemImage: "archivebox")
 				}
 			}
-			Button(action: onCompress) {
+			Menu {
+				ForEach(ArchiveFormat.creatable, id: \.fileExtension) { format in
+					Button(format.title) { onCompress(format) }
+				}
+			} label: {
 				Label("Compress", systemImage: "doc.zipper")
 			}
 

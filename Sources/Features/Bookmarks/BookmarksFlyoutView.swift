@@ -24,6 +24,7 @@ struct BookmarksFlyoutView: View {
 	/// bookmarked target is missing.
 	@State private var nodes: [UUID: FileNode] = [:]
 	@State private var showingAddBookmark = false
+	@State private var editingEntry: BookmarkEntry?
 
 	/// Plain bookmarks only — externally-picked "Added Folders" (which carry a
 	/// security-scoped bookmark) are Disks' concern, not this screen's.
@@ -62,6 +63,10 @@ struct BookmarksFlyoutView: View {
 			NavigationView { AddBookmarkView(initialPath: currentPath) }
 				.navigationViewStyle(.stack)
 		}
+		.sheet(item: $editingEntry) { entry in
+			NavigationView { AddBookmarkView(editing: entry) }
+				.navigationViewStyle(.stack)
+		}
 	}
 
 	@ViewBuilder
@@ -86,6 +91,12 @@ struct BookmarksFlyoutView: View {
 			}
 		}
 		.swipeActions(edge: .trailing) {
+			Button {
+				editingEntry = entry
+			} label: {
+				Label("Edit", systemImage: "pencil")
+			}
+			.tint(.orange)
 			Button(role: .destructive) {
 				bookmarks.remove(entry)
 			} label: {

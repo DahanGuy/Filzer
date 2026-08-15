@@ -1,12 +1,14 @@
 import Foundation
 
-/// Every archive format Filzer can extract. Creation is always `.zip`, matching Filza's
-/// own "Create ZIP" behavior — none of the others are meant to be authored, only opened.
+/// Every archive format Filzer can extract, plus which of those it can also create
+/// (`creatable`) — RAR (license-forbidden), bare GZip/BZip2 (single-stream, not real
+/// containers), XZ, and 7-Zip (no write support in SWCompression) are read-only.
 enum ArchiveFormat {
 	case zip
 	case rar
 	case tar
 	case tarGz
+	case tarBz2
 	case gzip
 	case bzip2
 	case xz
@@ -17,11 +19,15 @@ enum ArchiveFormat {
 		if name.hasSuffix(".tar.gz") || name.hasSuffix(".tgz") {
 			return .tarGz
 		}
+		if name.hasSuffix(".tar.bz2") || name.hasSuffix(".tbz2") {
+			return .tarBz2
+		}
 		switch url.pathExtension.lowercased() {
+		case "zip": return .zip
 		case "rar": return .rar
 		case "tar": return .tar
 		case "gz": return .gzip
-		case "bz2", "tbz2": return .bzip2
+		case "bz2": return .bzip2
 		case "xz": return .xz
 		case "7z": return .sevenZip
 		default: return .zip
@@ -34,8 +40,9 @@ enum ArchiveFormat {
 	static func isArchive(_ url: URL) -> Bool {
 		let name = url.lastPathComponent.lowercased()
 		if name.hasSuffix(".tar.gz") || name.hasSuffix(".tgz") { return true }
+		if name.hasSuffix(".tar.bz2") || name.hasSuffix(".tbz2") { return true }
 		switch url.pathExtension.lowercased() {
-		case "zip", "rar", "tar", "gz", "bz2", "tbz2", "xz", "7z": return true
+		case "zip", "rar", "tar", "gz", "bz2", "xz", "7z": return true
 		default: return false
 		}
 	}
@@ -52,6 +59,46 @@ enum ArchiveFormat {
 		if lowercased.hasSuffix(".tgz") {
 			return String(name.dropLast(".tgz".count))
 		}
+		if lowercased.hasSuffix(".tar.bz2") {
+			return String(name.dropLast(".tar.bz2".count))
+		}
+		if lowercased.hasSuffix(".tbz2") {
+			return String(name.dropLast(".tbz2".count))
+		}
 		return url.deletingPathExtension().lastPathComponent
+	}
+
+	/// Formats the "Compress" menu offers, in display order. Everything else here is
+	/// extraction-only.
+	static let creatable: [ArchiveFormat] = [.zip, .tar, .tarGz, .tarBz2]
+
+	var title: String {
+		switch self {
+		case .zip: return "Zip"
+		case .rar: return "RAR"
+		case .tar: return "Tar"
+		case .tarGz: return "Tar.gz"
+		case .tarBz2: return "Tar.bz2"
+		case .gzip: return "Gzip"
+		case .bzip2: return "Bzip2"
+		case .xz: return "XZ"
+		case .sevenZip: return "7-Zip"
+		}
+	}
+
+	/// The extension (without a leading dot, may contain one internally e.g.
+	/// `"tar.gz"`) a newly-created archive of this format should use.
+	var fileExtension: String {
+		switch self {
+		case .zip: return "zip"
+		case .rar: return "rar"
+		case .tar: return "tar"
+		case .tarGz: return "tar.gz"
+		case .tarBz2: return "tar.bz2"
+		case .gzip: return "gz"
+		case .bzip2: return "bz2"
+		case .xz: return "xz"
+		case .sevenZip: return "7z"
+		}
 	}
 }

@@ -1,11 +1,12 @@
 import Foundation
 import SWCompression
 
-/// Extraction-only backend for TAR, TAR.GZ, GZip, BZip2, XZ, and 7-Zip via
-/// SWCompression. Everything here is Data-in/Data-out (SWCompression has no streaming
-/// API besides plain TAR, and combined formats like tar.gz still fully materialize both
-/// the compressed and decompressed bytes) — fine for the file sizes a mobile file
-/// manager typically opens, not suited to multi-gigabyte archives.
+/// TAR/TAR.GZ/TAR.BZ2 creation, plus extraction for those and every other format
+/// SWCompression can read (GZip, BZip2, XZ, 7-Zip as single-stream/read-only).
+/// Everything here is Data-in/Data-out (SWCompression has no streaming API besides
+/// plain TAR, and combined formats like tar.gz still fully materialize both the
+/// compressed and decompressed bytes) — fine for the file sizes a mobile file manager
+/// typically opens, not suited to multi-gigabyte archives.
 struct SWCompressionArchiveService: ArchiveService {
 	private struct RawEntry {
 		let name: String
@@ -14,11 +15,54 @@ struct SWCompressionArchiveService: ArchiveService {
 		let data: Data?
 	}
 
+	/// TAR itself supports multiple entries natively; TAR.GZ/TAR.BZ2 are just a TAR
+	/// stream piped through a single-file compressor afterward — SWCompression has no
+	/// combined writer for those, so the two steps happen explicitly here.
 	func compress(_ urls: [URL], to destination: URL) throws {
-		throw FileSystemError.unsupported("Filzer can only create .zip archives.")
+		guard !urls.isEmpty else {
+			throw FileSystemError.operationFailed("Nothing selected to compress.")
+		}
+		var entries: [TarEntry] = []
+		for url in urls {
+			entries += try tarEntries(at: url, name: url.lastPathComponent)
+		}
+		let tarData = TarContainer.create(from: entries)
+		switch ArchiveFormat.detect(from: destination) {
+		case .tar:
+			try tarData.write(to: destination)
+		case .tarGz:
+			try GzipArchive.archive(data: tarData, fileName: destination.deletingPathExtension().lastPathComponent).write(to: destination)
+		case .tarBz2:
+			try BZip2.compress(data: tarData).write(to: destination)
+		case .zip, .rar, .gzip, .bzip2, .xz, .sevenZip:
+			throw FileSystemError.unsupported("Filzer can't create this archive format.")
+		}
 	}
 
-	func extract(_ archive: URL, toDirectory destination: URL) throws {
+	/// Builds `TarEntry` values for `url` (file or directory) under `name`, recursing
+	/// into directories — mirrors `ZIPFoundationArchiveService`'s own recursive add.
+	private func tarEntries(at url: URL, name: String) throws -> [TarEntry] {
+		let fm = FileManager.default
+		var isDirectory: ObjCBool = false
+		guard fm.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+			throw FileSystemError.notFound(url)
+		}
+		let modificationTime = (try? fm.attributesOfItem(atPath: url.path)[.modificationDate]) as? Date
+		if isDirectory.boolValue {
+			var info = TarEntryInfo(name: name + "/", type: .directory)
+			info.modificationTime = modificationTime
+			var entries = [TarEntry(info: info, data: nil)]
+			for childName in try fm.contentsOfDirectory(atPath: url.path).sorted() {
+				entries += try tarEntries(at: url.appendingPathComponent(childName), name: name + "/" + childName)
+			}
+			return entries
+		}
+		var info = TarEntryInfo(name: name, type: .regular)
+		info.modificationTime = modificationTime
+		return [TarEntry(info: info, data: try Data(contentsOf: url))]
+	}
+
+	func extract(_ archive: URL, toDirectory destination: URL, password: String?) throws {
 		try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
 		for entry in try rawEntries(of: archive) {
 			let entryURL = destination.appendingPathComponent(entry.name)
@@ -31,13 +75,13 @@ struct SWCompressionArchiveService: ArchiveService {
 		}
 	}
 
-	func listEntries(_ archive: URL) throws -> [ArchiveEntry] {
+	func listEntries(_ archive: URL, password: String?) throws -> [ArchiveEntry] {
 		try rawEntries(of: archive).map { entry in
 			ArchiveEntry(path: entry.name, isDirectory: entry.isDirectory, uncompressedSize: Int64(entry.size), compressedSize: Int64(entry.size))
 		}
 	}
 
-	func extractEntry(_ entryPath: String, from archive: URL, to destination: URL) throws {
+	func extractEntry(_ entryPath: String, from archive: URL, to destination: URL, password: String?) throws {
 		guard let entry = try rawEntries(of: archive).first(where: { $0.name == entryPath }) else {
 			throw FileSystemError.notFound(archive.appendingPathComponent(entryPath))
 		}
@@ -55,6 +99,11 @@ struct SWCompressionArchiveService: ArchiveService {
 			}
 		case .tarGz:
 			let tarData = try GzipArchive.unarchive(archive: raw)
+			return try TarContainer.open(container: tarData).map {
+				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
+			}
+		case .tarBz2:
+			let tarData = try BZip2.decompress(data: raw)
 			return try TarContainer.open(container: tarData).map {
 				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
 			}

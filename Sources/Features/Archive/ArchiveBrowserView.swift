@@ -5,12 +5,16 @@ import SwiftUI
 /// tree without extracting the whole thing to disk. This is just the root-level entry
 /// point `FileViewerRoute` pushes to; the actual browsing happens in
 /// `ArchiveBrowserLevelView`, which recurses into itself as the user drills into
-/// nested folders.
+/// nested folders. `password` is hoisted here (not local to each level) and passed
+/// down as a binding so unlocking a password-protected RAR once, at any depth, covers
+/// every level of the same archive instead of re-prompting per folder.
 struct ArchiveBrowserView: View {
 	let url: URL
 
+	@State private var password: String?
+
 	var body: some View {
-		ArchiveBrowserLevelView(archiveURL: url, prefix: "", title: url.lastPathComponent)
+		ArchiveBrowserLevelView(archiveURL: url, prefix: "", title: url.lastPathComponent, password: $password)
 	}
 }
 
@@ -22,6 +26,7 @@ struct ArchiveBrowserLevelView: View {
 	let archiveURL: URL
 	let prefix: String
 	let title: String
+	@Binding var password: String?
 
 	@State private var entries: [ArchiveEntry] = []
 	@State private var isLoading = true
@@ -30,6 +35,10 @@ struct ArchiveBrowserLevelView: View {
 	@State private var pendingNode: FileNode?
 	@State private var isExtractingAll = false
 	@State private var extractedFolderName: String?
+
+	@State private var showingPasswordPrompt = false
+	@State private var passwordInput = ""
+	@State private var pendingRetry: (() -> Void)?
 
 	var body: some View {
 		Group {
@@ -60,6 +69,18 @@ struct ArchiveBrowserLevelView: View {
 		}
 		.task { await loadEntries() }
 		.errorAlert($errorMessage)
+		.alert("Password Required", isPresented: $showingPasswordPrompt) {
+			SecureField("Password", text: $passwordInput)
+			Button("Cancel", role: .cancel) { pendingRetry = nil }
+			Button("Unlock") {
+				password = passwordInput
+				let retry = pendingRetry
+				pendingRetry = nil
+				retry?()
+			}
+		} message: {
+			Text("\"\(archiveURL.lastPathComponent)\" is password-protected.")
+		}
 		.alert("Extraction Complete", isPresented: extractedAllAlertBinding) {
 			Button("OK", role: .cancel) {}
 		} message: {
@@ -76,7 +97,7 @@ struct ArchiveBrowserLevelView: View {
 	private func rowContent(for row: ArchiveRow) -> some View {
 		if row.entry.isDirectory {
 			NavigationLink(
-				destination: ArchiveBrowserLevelView(archiveURL: archiveURL, prefix: row.entry.path, title: row.entry.name)
+				destination: ArchiveBrowserLevelView(archiveURL: archiveURL, prefix: row.entry.path, title: row.entry.name, password: $password)
 			) {
 				ArchiveRowView(entry: row.entry)
 			}
@@ -117,12 +138,24 @@ struct ArchiveBrowserLevelView: View {
 
 	// MARK: - Loading and extraction
 
+	/// Routes a failure to the password prompt (retrying the same operation once one's
+	/// supplied) when the archive needs one, or to the plain error alert otherwise.
+	private func handleArchiveError(_ error: Error, retry: @escaping () -> Void) {
+		if case FileSystemError.archivePasswordRequired = error {
+			passwordInput = password ?? ""
+			pendingRetry = retry
+			showingPasswordPrompt = true
+		} else {
+			errorMessage = error.localizedDescription
+		}
+	}
+
 	private func loadEntries() async {
 		isLoading = true
 		do {
-			entries = try await FileSystem.current.listArchiveEntries(archiveURL)
+			entries = try await FileSystem.current.listArchiveEntries(archiveURL, password: password)
 		} catch {
-			errorMessage = error.localizedDescription
+			handleArchiveError(error) { Task { await loadEntries() } }
 		}
 		isLoading = false
 	}
@@ -137,10 +170,10 @@ struct ArchiveBrowserLevelView: View {
 				let scratchDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 				let destination = scratchDirectory.appendingPathComponent(entry.name)
 				try await FileSystem.current.createDirectory(at: scratchDirectory)
-				try await FileSystem.current.extractArchiveEntry(entry.path, from: archiveURL, to: destination)
+				try await FileSystem.current.extractArchiveEntry(entry.path, from: archiveURL, to: destination, password: password)
 				pendingNode = try FileNode.make(at: destination)
 			} catch {
-				errorMessage = error.localizedDescription
+				handleArchiveError(error) { extract(entry) }
 			}
 		}
 	}
@@ -154,10 +187,10 @@ struct ArchiveBrowserLevelView: View {
 			do {
 				let folderName = ArchiveFormat.baseName(for: archiveURL)
 				let destination = archiveURL.deletingLastPathComponent().appendingPathComponent(folderName)
-				try await FileSystem.current.extractArchive(archiveURL, toDirectory: destination)
+				try await FileSystem.current.extractArchive(archiveURL, toDirectory: destination, password: password)
 				extractedFolderName = destination.lastPathComponent
 			} catch {
-				errorMessage = error.localizedDescription
+				handleArchiveError(error) { extractAll() }
 			}
 		}
 	}

@@ -81,17 +81,17 @@ extension FileSystemEngine {
 		try await expectDone(.compressItems(urls, to: destination))
 	}
 
-	func extractArchive(_ archive: URL, toDirectory destination: URL) async throws {
-		try await expectDone(.extractArchive(archive, toDirectory: destination))
+	func extractArchive(_ archive: URL, toDirectory destination: URL, password: String? = nil) async throws {
+		try await expectDone(.extractArchive(archive, toDirectory: destination, password: password))
 	}
 
 	/// Lists an archive's contents without extracting it to disk.
-	func listArchiveEntries(_ archive: URL) async throws -> [ArchiveEntry] {
-		try await expectArchiveEntries(.listArchiveEntries(archive))
+	func listArchiveEntries(_ archive: URL, password: String? = nil) async throws -> [ArchiveEntry] {
+		try await expectArchiveEntries(.listArchiveEntries(archive, password: password))
 	}
 
-	func extractArchiveEntry(_ entryPath: String, from archive: URL, to destination: URL) async throws {
-		try await expectDone(.extractArchiveEntry(archive: archive, entryPath: entryPath, to: destination))
+	func extractArchiveEntry(_ entryPath: String, from archive: URL, to destination: URL, password: String? = nil) async throws {
+		try await expectDone(.extractArchiveEntry(archive: archive, entryPath: entryPath, to: destination, password: password))
 	}
 
 	func search(root: URL, query: String, includeHidden: Bool = false) async throws -> [FileNode] {
