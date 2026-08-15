@@ -223,11 +223,19 @@ struct FileBrowserView: View {
 		isPathInputMode = false
 		isSearchFieldFocused = false
 		searchQuery = ""
-		let chain: [URL]
+		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
 			chain = pathChain(from: root, to: url)
 		} else {
 			chain = [url]
+		}
+		// The chain's own first level can be exactly the folder already on screen -
+		// e.g. jumping to a bookmark from the root screen ("/") itself chains from "/"
+		// too, which would otherwise re-push a second, redundant "/" ahead of the one
+		// already at the bottom of the stack. Drop it; everything after it is still a
+		// real step down from what's currently showing.
+		if chain.count > 1, chain[0].path == rootURL.path {
+			chain.removeFirst()
 		}
 		if chain.count > 1, let hostNavigationController {
 			pushChain(chain, displayName: displayName, on: hostNavigationController)
