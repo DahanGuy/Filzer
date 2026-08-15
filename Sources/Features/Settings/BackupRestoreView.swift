@@ -17,6 +17,7 @@ struct BackupRestoreView: View {
 				} label: {
 					ButtonLabel(text: "Export Settings", icon: "square.and.arrow.up")
 				}
+				.buttonStyle(TranslucentButtonStyle())
 			}
 
 			Section(footer: Text("Replaces every current setting with the contents of a previously exported JSON file.")) {
@@ -25,6 +26,7 @@ struct BackupRestoreView: View {
 				} label: {
 					ButtonLabel(text: "Import Settings", icon: "square.and.arrow.down")
 				}
+				.buttonStyle(TranslucentButtonStyle())
 			}
 		}
 		.navigationTitle("Backup & Restore")

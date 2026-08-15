@@ -574,7 +574,7 @@ struct FileBrowserView: View {
 		.frame(maxWidth: .infinity)
 		.background(
 			RoundedRectangle(cornerRadius: cornerRad.component, style: .continuous)
-				.fill(isSelected ? Color.accentColor.opacity(0.15) : Color(.secondarySystemBackground))
+				.fill(isSelected ? Color.accentColor.opacity(0.2) : Color(.secondarySystemBackground))
 		)
 		.opacity(node.isHidden ? 0.85 : 1)
 	}
@@ -632,10 +632,13 @@ struct FileBrowserView: View {
 	/// of `ToolbarItem`/`.bottomBar` flakiness when its content changes shape
 	/// dynamically. A safe-area inset is a plain view modifier on the main content,
 	/// entirely outside the toolbar layout system, so there's nothing left for it to
-	/// misrender.
+	/// misrender. While selecting, this slot hosts `selectionActionBar` instead -
+	/// same container, different content, never both.
 	@ViewBuilder
 	private var bottomSearchBar: some View {
-		if !viewModel.isSelecting {
+		if viewModel.isSelecting {
+			selectionActionBar
+		} else {
 			HStack(spacing: 10) {
 				searchOrPathField
 				modeToggleButton
@@ -711,15 +714,12 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var trailingToolbarContent: some View {
 		if viewModel.isSelecting {
-			HStack(spacing: 18) {
-				Button(viewModel.selection.count == viewModel.nodes.count ? "Deselect All" : "Select All") {
-					if viewModel.selection.count == viewModel.nodes.count {
-						viewModel.selection.removeAll()
-					} else {
-						viewModel.selection = Set(viewModel.nodes.map(\.url))
-					}
+			Button(viewModel.selection.count == viewModel.nodes.count ? "Deselect All" : "Select All") {
+				if viewModel.selection.count == viewModel.nodes.count {
+					viewModel.selection.removeAll()
+				} else {
+					viewModel.selection = Set(viewModel.nodes.map(\.url))
 				}
-				batchActionsMenu
 			}
 		} else if isRoot {
 			rootActionsMenu
@@ -733,20 +733,25 @@ struct FileBrowserView: View {
 		}
 	}
 
-	private var batchActionsMenu: some View {
-		Menu {
-			Button {
+	/// The multi-select equivalent of `bottomSearchBar` - Copy/Cut/Compress/Share/
+	/// Delete as a row of circular icon buttons in the same `OverlayBackground` bar
+	/// treatment, instead of cramming them into a top-toolbar ellipsis menu. Every
+	/// button reuses `TranslucentButtonStyle`'s exact recipe - `Compress` has to
+	/// replicate it by hand since it's a `Menu` (for the format submenu), and
+	/// `ButtonStyle` doesn't apply to `Menu` labels the way it does to `Button`.
+	private var selectionActionBar: some View {
+		HStack {
+			Spacer()
+			selectionButton(icon: "doc.on.doc", label: "Copy") {
 				clipboard.set(Array(viewModel.selection), operation: .copy)
 				viewModel.endSelecting()
-			} label: {
-				Label("Copy", systemImage: "doc.on.doc")
 			}
-			Button {
+			Spacer()
+			selectionButton(icon: "scissors", label: "Cut") {
 				clipboard.set(Array(viewModel.selection), operation: .move)
 				viewModel.endSelecting()
-			} label: {
-				Label("Cut", systemImage: "scissors")
 			}
+			Spacer()
 			Menu {
 				ForEach(ArchiveFormat.creatable, id: \.fileExtension) { format in
 					Button(format.title) {
@@ -758,24 +763,35 @@ struct FileBrowserView: View {
 					}
 				}
 			} label: {
-				Label("Compress", systemImage: "doc.zipper")
+				Image(systemName: "doc.zipper")
+					.font(.system(size: 18, weight: .semibold))
+					.foregroundStyle(Color.accentColor)
+					.padding()
+					.background(Color.accentColor.opacity(0.2), in: Circle())
 			}
-			Button {
+			.accessibilityLabel("Compress")
+			Spacer()
+			selectionButton(icon: "square.and.arrow.up", label: "Share") {
 				presentMultiShareSheet(for: Array(viewModel.selection))
-			} label: {
-				Label("Share", systemImage: "square.and.arrow.up")
 			}
-			Divider()
-			Button(role: .destructive) {
+			Spacer()
+			selectionButton(icon: "trash", label: "Delete", color: .red) {
 				pendingDeleteURLs = Array(viewModel.selection)
 				showingDeleteConfirmation = true
-			} label: {
-				Label("Delete", systemImage: "trash")
 			}
-		} label: {
-			Image(systemName: "ellipsis.circle")
+			Spacer()
 		}
 		.disabled(viewModel.selection.isEmpty)
+		.modifier(OverlayBackground())
+	}
+
+	private func selectionButton(icon: String, label: String, color: Color = .accentColor, action: @escaping () -> Void) -> some View {
+		Button(action: action) {
+			Image(systemName: icon)
+				.font(.system(size: 18, weight: .semibold))
+		}
+		.buttonStyle(TranslucentButtonStyle(color: color, shape: Circle(), useFullWidth: false))
+		.accessibilityLabel(label)
 	}
 
 	/// Root's single trailing menu: Select is a plain action, Add/Sort are nested

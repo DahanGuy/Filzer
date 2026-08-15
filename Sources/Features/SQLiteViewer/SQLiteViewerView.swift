@@ -28,8 +28,9 @@ struct SQLiteViewerView: View {
 				Button {
 					isShowingQuerySheet = true
 				} label: {
-					NavigationLabel(text: "Run SQL", icon: "terminal", showChevron: false)
+					ButtonLabel(text: "Run SQL", icon: "terminal")
 				}
+				.buttonStyle(TranslucentButtonStyle())
 			}
 
 			Section(header: HeaderLabel(text: "Tables", icon: "tablecells")) {
