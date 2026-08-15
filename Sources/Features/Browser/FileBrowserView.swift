@@ -191,30 +191,46 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var pendingNavigationDestination: some View {
 		if let pendingNavigation {
-			BookmarkDestinationRoute(chain: pendingNavigation.chain, displayName: pendingNavigation.displayName)
+			if pendingNavigation.chain.count > 1 {
+				ChainPushRoute(chain: pendingNavigation.chain, displayName: pendingNavigation.displayName)
+			} else if let target = pendingNavigation.chain.first {
+				FileBrowserView(rootURL: target, displayName: pendingNavigation.displayName)
+			} else {
+				EmptyView()
+			}
 		} else {
 			EmptyView()
 		}
 	}
 
-	/// `chainFromRoot: true` (Bookmarks jumps) walks up from the nearest reachable
-	/// root - the sandbox container, an Added Folder, or a remote connection's root -
-	/// and pushes every folder from there down to `url`, exactly as if the user had
-	/// tapped through each one by hand, so backing out retraces the same folders one
-	/// level at a time. Disks jumps and path-input jumps push `url` directly - a Disks
-	/// root has nothing reachable above it, and a typed path isn't "the way you got
-	/// there" the way a bookmark is.
+	/// `chainFromRoot: true` (Bookmarks/Recents jumps) walks up from the nearest
+	/// reachable root and pushes every folder from there down to `url`, exactly as if
+	/// the user had tapped through each one by hand, so backing out retraces the same
+	/// folders one level at a time - but only when that root is the volume root or the
+	/// sandbox container. An Added Folder or remote connection's own root never
+	/// chains, matching Disks' own jumps: there's nothing reachable above it to walk
+	/// through, so a chain rooted there would just be a same-length detour, not a
+	/// meaningful "way you got there". Path-input jumps push `url` directly too - a
+	/// typed path isn't "the way you got there" the way a bookmark is.
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		isPathInputMode = false
 		isSearchFieldFocused = false
 		searchQuery = ""
 		let chain: [URL]
-		if chainFromRoot, let root = reachableRoot(containing: url) {
+		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
 			chain = pathChain(from: root, to: url)
 		} else {
 			chain = [url]
 		}
 		pendingNavigation = PendingNavigation(chain: chain, displayName: displayName)
+	}
+
+	private func isAddedFolderOrRemoteRoot(_ root: URL) -> Bool {
+		let addedFolderRoots = bookmarks.entries
+			.filter { $0.securityScopedBookmarkData != nil }
+			.map { bookmarks.resolvedURL(for: $0).absoluteString }
+		let remoteRoots = remoteConnections.connections.map { $0.rootURL.absoluteString }
+		return (addedFolderRoots + remoteRoots).contains(root.absoluteString)
 	}
 
 	/// The nearest known reachable root at or above `url`, most-specific first: an
@@ -842,47 +858,59 @@ struct FileBrowserView: View {
 	}
 }
 
-/// Pushes every folder in `chain` one at a time — `chain[0]` first, auto-pushing
-/// `chain[1]` on top of it, and so on through the target at `chain.last` — so backing
-/// out of the destination walks back up exactly the same folders a manual tap-through
-/// would have pushed, one level at a time, instead of returning straight to whatever
-/// screen presented the flyout. A single-element chain (a Disks root with nothing
-/// reachable above it, a path-input jump, or a bookmark outside every known root)
-/// just pushes that one folder directly.
-private struct BookmarkDestinationRoute: View {
+/// Pushes every folder in `chain` onto the real `UINavigationController` at once, via
+/// a single non-animated `setViewControllers` call — not a chain of reactive
+/// `NavigationLink(isActive:)` auto-triggers, which proved unreliable for more than
+/// one level (SwiftUI's `NavigationView` loses track of the stack and bounces between
+/// the first two) and, even fixed to not race, would still cost a full push-transition
+/// duration *per level* for a long path. `FileBrowserView` for `chain[0]` gets pushed
+/// normally (with the usual animated transition, from whoever presented this) as an
+/// invisible placeholder; the instant it's actually on the navigation stack
+/// (`viewDidAppear`, when `navigationController` is guaranteed non-nil) it's replaced
+/// in one atomic step by the real chain, with the final level's `displayName` applied.
+/// Backing out afterward still walks the real stack one level at a time, exactly as if
+/// each folder had been tapped by hand.
+private struct ChainPushRoute: UIViewControllerRepresentable {
 	let chain: [URL]
 	let displayName: String?
 
-	@State private var isNextActive = false
+	@EnvironmentObject private var settings: SettingsStore
+	@EnvironmentObject private var clipboard: ClipboardStore
+	@EnvironmentObject private var bookmarks: BookmarksStore
+	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
 
-	var body: some View {
-		FileBrowserView(
-			rootURL: chain[0],
-			displayName: chain.count == 1 ? displayName : nil
-		)
-		.background(nextLink)
+	func makeUIViewController(context: Context) -> ChainPlaceholderViewController {
+		let controller = ChainPlaceholderViewController()
+		let hostingControllers: [UIViewController] = chain.enumerated().map { index, url in
+			let view = FileBrowserView(rootURL: url, displayName: index == chain.count - 1 ? displayName : nil)
+				.environmentObject(settings)
+				.environmentObject(clipboard)
+				.environmentObject(bookmarks)
+				.environmentObject(remoteConnections)
+			return UIHostingController(rootView: view)
+		}
+		controller.onAppearOnce = { navigationController in
+			let stack = navigationController.viewControllers.dropLast() + hostingControllers
+			navigationController.setViewControllers(Array(stack), animated: false)
+		}
+		return controller
 	}
 
-	@ViewBuilder
-	private var nextLink: some View {
-		if chain.count > 1 {
-			NavigationLink(
-				destination: BookmarkDestinationRoute(chain: Array(chain.dropFirst()), displayName: displayName),
-				isActive: $isNextActive
-			) { EmptyView() }
-			.task {
-				// Firing every isActive=true the instant the previous level appears
-				// races NavigationView's own push transition and makes it lose track
-				// of the stack - observed as bouncing between the first two levels
-				// instead of proceeding deeper. Waiting out that transition first
-				// (~standard push duration) before triggering the next one avoids
-				// the race; it also happens to match what was asked for elsewhere -
-				// walking through each folder like a real tap-through, not an
-				// instant teleport.
-				try? await Task.sleep(nanoseconds: 350_000_000)
-				guard !Task.isCancelled else { return }
-				isNextActive = true
-			}
-		}
+	func updateUIViewController(_ uiViewController: ChainPlaceholderViewController, context: Context) {}
+}
+
+private final class ChainPlaceholderViewController: UIViewController {
+	var onAppearOnce: ((UINavigationController) -> Void)?
+
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		view.backgroundColor = .systemBackground
+	}
+
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+		guard let onAppearOnce, let navigationController else { return }
+		self.onAppearOnce = nil
+		onAppearOnce(navigationController)
 	}
 }
