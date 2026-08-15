@@ -6,6 +6,14 @@ import SwiftUI
 /// own row, marked inaccessible, instead of silently vanishing - the previous
 /// behavior left the list looking empty or broken even though entries existed.
 struct RecentsFlyoutView: View {
+	/// Called with a recent file's *containing folder* (never the file itself) when
+	/// its row is tapped - dismisses this popover and opens that folder in the
+	/// presenter's own stack, exactly like tapping a folder in Bookmarks/Disks does.
+	/// Landing in the folder the file lives in (with its siblings visible) is more
+	/// useful for "get back to what I was working on" than re-opening the same
+	/// viewer directly.
+	let onNavigate: (URL, String?) -> Void
+
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var recents: RecentsStore
 
@@ -47,7 +55,11 @@ struct RecentsFlyoutView: View {
 	private func row(for entry: RecentEntry) -> some View {
 		Group {
 			if let node = nodes[entry.id] {
-				NavigationLink(destination: FileViewerRoute(node: node)) {
+				Button {
+					let folderURL = node.url.deletingLastPathComponent()
+					onNavigate(folderURL, folderURL.lastPathComponent)
+					dismiss()
+				} label: {
 					HStack {
 						FileRow(node: node)
 						Spacer()
@@ -56,6 +68,7 @@ struct RecentsFlyoutView: View {
 							.foregroundStyle(.tertiary)
 					}
 				}
+				.buttonStyle(.plain)
 			} else if failedIDs.contains(entry.id) {
 				HStack(spacing: 12) {
 					Image(systemName: "exclamationmark.triangle")

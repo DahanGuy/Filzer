@@ -140,7 +140,9 @@ struct FileBrowserView: View {
 			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingRecents) {
-			NavigationView { RecentsFlyoutView() }.navigationViewStyle(.stack)
+			NavigationView {
+				RecentsFlyoutView(onNavigate: { navigate(to: $0, displayName: $1, chainFromRoot: true) })
+			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingSettings) {
 			SettingsView()
