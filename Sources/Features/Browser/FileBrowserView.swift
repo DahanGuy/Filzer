@@ -19,9 +19,10 @@ struct FileBrowserView: View {
 	@EnvironmentObject private var settings: SettingsStore
 	@EnvironmentObject private var clipboard: ClipboardStore
 	@EnvironmentObject private var bookmarks: BookmarksStore
+	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
 
 	@StateObject private var viewModel: FileBrowserViewModel
-	@Environment(\.isSearching) private var isSearching
+	@FocusState private var isSearchFieldFocused: Bool
 	@State private var searchQuery = ""
 	@State private var searchResults: [FileNode] = []
 	@State private var isSearchLoading = false
@@ -43,14 +44,12 @@ struct FileBrowserView: View {
 	@State private var showingSettings = false
 
 	private struct PendingNavigation: Identifiable {
-		let url: URL
+		/// Ordered root-to-target; a single-element chain is a direct push (e.g. a
+		/// Disks root, which has nothing meaningful above it to walk through).
+		let chain: [URL]
+		/// Applies only to the last (target) element of `chain`.
 		let displayName: String?
-		/// True for a Bookmarks/Disks jump: the destination's own parent is inserted
-		/// onto the stack first (see `BookmarkDestinationRoute`) so backing out of the
-		/// destination lands on the folder above it, not back on whatever screen
-		/// presented the flyout.
-		var insertParent: Bool = false
-		var id: URL { url }
+		var id: URL { chain.last ?? URL(fileURLWithPath: "/") }
 	}
 
 	init(rootURL: URL, displayName: String? = nil, isRoot: Bool = false) {
@@ -68,7 +67,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearching || isPathInputMode {
+			if isSearchFieldFocused || isSearchActive || isPathInputMode {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -79,7 +78,6 @@ struct FileBrowserView: View {
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
-		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
 		.toolbar { toolbarBottom }
@@ -116,12 +114,12 @@ struct FileBrowserView: View {
 		}
 		.popover(isPresented: $showingDisks) {
 			NavigationView {
-				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1, insertParent: true) })
+				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1) })
 			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingBookmarks) {
 			NavigationView {
-				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1, insertParent: true) })
+				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1, chainFromRoot: true) })
 			}.navigationViewStyle(.stack)
 		}
 		.popover(isPresented: $showingRecents) {
@@ -136,12 +134,6 @@ struct FileBrowserView: View {
 			} else {
 				scheduleSearch()
 			}
-		}
-		.onChange(of: isSearching) { newValue in
-			if !newValue { resetPathInputMode() }
-		}
-		.onSubmit(of: .search) {
-			if isPathInputMode { navigate(to: URL(fileURLWithPath: searchQuery), displayName: nil) }
 		}
 		.task {
 			viewModel.includeHidden = settings.showHiddenFiles
@@ -180,20 +172,65 @@ struct FileBrowserView: View {
 	@ViewBuilder
 	private var pendingNavigationDestination: some View {
 		if let pendingNavigation {
-			if pendingNavigation.insertParent {
-				BookmarkDestinationRoute(url: pendingNavigation.url, displayName: pendingNavigation.displayName)
-			} else {
-				FileBrowserView(rootURL: pendingNavigation.url, displayName: pendingNavigation.displayName)
-			}
+			BookmarkDestinationRoute(chain: pendingNavigation.chain, displayName: pendingNavigation.displayName)
 		} else {
 			EmptyView()
 		}
 	}
 
-	private func navigate(to url: URL, displayName: String?, insertParent: Bool = false) {
+	/// `chainFromRoot: true` (Bookmarks jumps) walks up from the nearest reachable
+	/// root - the sandbox container, an Added Folder, or a remote connection's root -
+	/// and pushes every folder from there down to `url`, exactly as if the user had
+	/// tapped through each one by hand, so backing out retraces the same folders one
+	/// level at a time. Disks jumps and path-input jumps push `url` directly - a Disks
+	/// root has nothing reachable above it, and a typed path isn't "the way you got
+	/// there" the way a bookmark is.
+	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		isPathInputMode = false
+		isSearchFieldFocused = false
 		searchQuery = ""
-		pendingNavigation = PendingNavigation(url: url, displayName: displayName, insertParent: insertParent)
+		let chain: [URL]
+		if chainFromRoot, let root = reachableRoot(containing: url) {
+			chain = pathChain(from: root, to: url)
+		} else {
+			chain = [url]
+		}
+		pendingNavigation = PendingNavigation(chain: chain, displayName: displayName)
+	}
+
+	/// The nearest known reachable root at or above `url`: the sandbox container, an
+	/// Added Folder, or a remote connection's own root. `nil` when nothing reachable
+	/// contains it.
+	private func reachableRoot(containing url: URL) -> URL? {
+		var candidates = [URL(fileURLWithPath: NSHomeDirectory())]
+		candidates += bookmarks.entries
+			.filter { $0.securityScopedBookmarkData != nil }
+			.map { bookmarks.resolvedURL(for: $0) }
+		candidates += remoteConnections.connections.map(\.rootURL)
+		return candidates
+			.filter { isAncestor($0, of: url) }
+			.max { $0.pathComponents.count < $1.pathComponents.count }
+	}
+
+	private func isAncestor(_ root: URL, of url: URL) -> Bool {
+		guard root.scheme == url.scheme, root.host == url.host else { return false }
+		let rootComponents = root.pathComponents
+		let urlComponents = url.pathComponents
+		guard urlComponents.count >= rootComponents.count else { return false }
+		return Array(urlComponents.prefix(rootComponents.count)) == rootComponents
+	}
+
+	/// Every folder from `root` (first) down to (and including) `target` (last), one
+	/// path component at a time.
+	private func pathChain(from root: URL, to target: URL) -> [URL] {
+		let remainder = target.pathComponents.dropFirst(root.pathComponents.count)
+		var chain = [root]
+		var current = root
+		for component in remainder {
+			current = current.appendingPathComponent(component)
+			chain.append(current)
+		}
+		return chain
 	}
 
 	// MARK: - Empty / search states
@@ -208,30 +245,13 @@ struct FileBrowserView: View {
 	}
 
 	/// Recursive (subfolders too) or flat (current folder only) per
-	/// `settings.recursiveSearch` - see `scheduleSearch`. The persistent path-input
-	/// toggle lives in `toolbarBottom`, not here, so it's reachable even before the
-	/// user has engaged the native search field at all.
+	/// `settings.recursiveSearch` - see `scheduleSearch`. Path-input mode shows live
+	/// autosuggest instead - the search field itself doubles as the path field, typed
+	/// or pasted directly, no separate readout needed.
 	@ViewBuilder
 	private var searchResultsContent: some View {
 		if isPathInputMode {
-			VStack(spacing: 0) {
-				HStack(spacing: 12) {
-					Button {
-						UIPasteboard.general.string = rootURL.path
-					} label: {
-						Image(systemName: "doc.on.doc")
-					}
-					Text(searchQuery.isEmpty ? rootURL.path : searchQuery)
-						.font(.footnote)
-						.foregroundStyle(.secondary)
-						.lineLimit(1)
-						.truncationMode(.head)
-					Spacer()
-				}
-				.padding(.horizontal)
-				.padding(.vertical, 8)
-				pathSuggestionsContent
-			}
+			pathSuggestionsContent
 		} else if isSearchLoading {
 			ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
 		} else if searchResults.isEmpty {
@@ -262,16 +282,24 @@ struct FileBrowserView: View {
 		isPathInputMode.toggle()
 		if isPathInputMode {
 			searchQuery = rootURL.path
+			isSearchFieldFocused = true
 			schedulePathSuggestions()
 		} else {
 			searchQuery = ""
 			pathSuggestions = []
+			isSearchFieldFocused = false
 		}
 	}
 
-	private func resetPathInputMode() {
-		isPathInputMode = false
-		pathSuggestions = []
+	/// Clears the field and fully exits search/path-input mode - the bottom bar's own
+	/// "x" button, standing in for the Cancel a native `.searchable` field would give.
+	private func clearSearch() {
+		searchQuery = ""
+		isSearchFieldFocused = false
+		if isPathInputMode {
+			isPathInputMode = false
+			pathSuggestions = []
+		}
 	}
 
 	/// Lists the parent of whatever path is currently typed and keeps folders whose
@@ -500,20 +528,48 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// A persistent bottom-bar button beside the (top) search field, switching it
-	/// between recursive/flat search and a path-input mode with live autosuggest -
-	/// reachable whether or not the native search field is currently engaged.
+	/// The search bar itself, at the bottom - not `.searchable`'s default top
+	/// placement - with the mode-toggle button beside it, exactly the layout Filza
+	/// itself uses. Reachable and typeable regardless of the current folder's content.
 	@ToolbarContentBuilder
 	private var toolbarBottom: some ToolbarContent {
 		ToolbarItem(placement: .bottomBar) {
 			if !viewModel.isSelecting {
-				Button {
-					togglePathInputMode()
-				} label: {
-					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
+				HStack(spacing: 10) {
+					searchField
+					Button {
+						togglePathInputMode()
+					} label: {
+						Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
+					}
 				}
 			}
 		}
+	}
+
+	private var searchField: some View {
+		HStack(spacing: 6) {
+			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
+				.foregroundStyle(.secondary)
+			TextField(isPathInputMode ? "Path" : "Search", text: $searchQuery)
+				.focused($isSearchFieldFocused)
+				.autocapitalization(.none)
+				.disableAutocorrection(true)
+				.onSubmit {
+					if isPathInputMode { navigate(to: URL(fileURLWithPath: searchQuery), displayName: nil) }
+				}
+			if !searchQuery.isEmpty {
+				Button {
+					clearSearch()
+				} label: {
+					Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+				}
+				.buttonStyle(.plain)
+			}
+		}
+		.padding(.horizontal, 10)
+		.padding(.vertical, 7)
+		.background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
 	}
 
 	@ViewBuilder
@@ -731,32 +787,35 @@ struct FileBrowserView: View {
 	}
 }
 
-/// Pushed instead of the destination directly for a Bookmarks/Disks jump. Inserts the
-/// destination's own parent onto the stack first and auto-pushes the destination on
-/// top of it, so backing out of the destination lands on the folder above it in the
-/// filesystem - continuing to browse around where the jump landed - rather than back
-/// on whatever screen presented the flyout. A destination with no distinct parent
-/// (already the volume root) skips the wrapper and pushes straight through.
+/// Pushes every folder in `chain` one at a time — `chain[0]` first, auto-pushing
+/// `chain[1]` on top of it, and so on through the target at `chain.last` — so backing
+/// out of the destination walks back up exactly the same folders a manual tap-through
+/// would have pushed, one level at a time, instead of returning straight to whatever
+/// screen presented the flyout. A single-element chain (a Disks root with nothing
+/// reachable above it, a path-input jump, or a bookmark outside every known root)
+/// just pushes that one folder directly.
 private struct BookmarkDestinationRoute: View {
-	let url: URL
+	let chain: [URL]
 	let displayName: String?
 
-	@State private var isTargetActive = false
-
-	private var parentURL: URL { url.deletingLastPathComponent() }
+	@State private var isNextActive = false
 
 	var body: some View {
-		if parentURL.path == url.path {
-			FileBrowserView(rootURL: url, displayName: displayName)
-		} else {
-			FileBrowserView(rootURL: parentURL)
-				.background(
-					NavigationLink(
-						destination: FileBrowserView(rootURL: url, displayName: displayName),
-						isActive: $isTargetActive
-					) { EmptyView() }
-				)
-				.onAppear { isTargetActive = true }
+		FileBrowserView(
+			rootURL: chain[0],
+			displayName: chain.count == 1 ? displayName : nil
+		)
+		.background(nextLink)
+	}
+
+	@ViewBuilder
+	private var nextLink: some View {
+		if chain.count > 1 {
+			NavigationLink(
+				destination: BookmarkDestinationRoute(chain: Array(chain.dropFirst()), displayName: displayName),
+				isActive: $isNextActive
+			) { EmptyView() }
+			.onAppear { isNextActive = true }
 		}
 	}
 }
