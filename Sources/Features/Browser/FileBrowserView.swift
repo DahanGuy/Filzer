@@ -37,6 +37,7 @@ struct FileBrowserView: View {
 	@State private var pendingDeleteURLs: [URL] = []
 	@State private var showingDeleteConfirmation = false
 	@State private var pendingNavigation: PendingNavigation?
+	@State private var hostNavigationController: UINavigationController?
 	@State private var archivePasswordPromptURL: URL?
 	@State private var archivePasswordInput = ""
 	@State private var pendingArchivePasswordRetry: (() -> Void)?
@@ -47,12 +48,9 @@ struct FileBrowserView: View {
 	@State private var showingSettings = false
 
 	private struct PendingNavigation: Identifiable {
-		/// Ordered root-to-target; a single-element chain is a direct push (e.g. a
-		/// Disks root, which has nothing meaningful above it to walk through).
-		let chain: [URL]
-		/// Applies only to the last (target) element of `chain`.
+		let url: URL
 		let displayName: String?
-		var id: URL { chain.last ?? URL(fileURLWithPath: "/") }
+		var id: URL { url }
 	}
 
 	init(rootURL: URL, displayName: String? = nil, isRoot: Bool = false) {
@@ -174,30 +172,28 @@ struct FileBrowserView: View {
 		!searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 	}
 
-	/// A single hidden `NavigationLink` driving programmatic push — used by the search
-	/// bar's path-input mode and by tapping a folder inside the Disks/Bookmarks
-	/// flyouts (which dismiss themselves and hand the target back here via
-	/// `onNavigate`, so the folder opens in *this* screen's own stack instead of
-	/// nesting inside the flyout's).
+	/// A single hidden `NavigationLink` driving programmatic push, plus a captured
+	/// reference to this screen's own `UINavigationController` (see
+	/// `NavigationControllerAccessor`) — used by the search bar's path-input mode and
+	/// by tapping a folder inside the Disks/Bookmarks/Recents flyouts (which dismiss
+	/// themselves and hand the target back here via `onNavigate`, so the folder opens
+	/// in *this* screen's own stack instead of nesting inside the flyout's).
 	private var navigationLinks: some View {
-		NavigationLink(
-			destination: pendingNavigationDestination,
-			isActive: Binding(get: { pendingNavigation != nil }, set: { if !$0 { pendingNavigation = nil } })
-		) {
-			EmptyView()
+		Group {
+			NavigationLink(
+				destination: pendingNavigationDestination,
+				isActive: Binding(get: { pendingNavigation != nil }, set: { if !$0 { pendingNavigation = nil } })
+			) {
+				EmptyView()
+			}
+			NavigationControllerAccessor { hostNavigationController = $0 }
 		}
 	}
 
 	@ViewBuilder
 	private var pendingNavigationDestination: some View {
 		if let pendingNavigation {
-			if pendingNavigation.chain.count > 1 {
-				ChainPushRoute(chain: pendingNavigation.chain, displayName: pendingNavigation.displayName)
-			} else if let target = pendingNavigation.chain.first {
-				FileBrowserView(rootURL: target, displayName: pendingNavigation.displayName)
-			} else {
-				EmptyView()
-			}
+			FileBrowserView(rootURL: pendingNavigation.url, displayName: pendingNavigation.displayName)
 		} else {
 			EmptyView()
 		}
@@ -212,6 +208,17 @@ struct FileBrowserView: View {
 	/// through, so a chain rooted there would just be a same-length detour, not a
 	/// meaningful "way you got there". Path-input jumps push `url` directly too - a
 	/// typed path isn't "the way you got there" the way a bookmark is.
+	///
+	/// A chain of more than one folder is pushed by reaching straight into this
+	/// screen's own `UINavigationController` (`pushChain`), never through a SwiftUI
+	/// `NavigationLink`. Driving a multi-level push reactively through `pendingNavigation`
+	/// - even bridged through a `UIViewControllerRepresentable` that later replaced
+	/// itself - still leaves that stack slot under a live `NavigationLink(isActive:)`
+	/// binding; SwiftUI "reconciles" its own tracked destination against whatever's
+	/// actually there and reverts the manual change, which is exactly what showed up as
+	/// the target flashing on screen and then reverting to an earlier level. A single
+	/// level has nothing to reconcile against and keeps using the plain, working
+	/// `pendingNavigation` path.
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		isPathInputMode = false
 		isSearchFieldFocused = false
@@ -222,7 +229,30 @@ struct FileBrowserView: View {
 		} else {
 			chain = [url]
 		}
-		pendingNavigation = PendingNavigation(chain: chain, displayName: displayName)
+		if chain.count > 1, let hostNavigationController {
+			pushChain(chain, displayName: displayName, on: hostNavigationController)
+		} else {
+			pendingNavigation = PendingNavigation(url: url, displayName: displayName)
+		}
+	}
+
+	/// Appends every intermediate folder to the stack in one non-animated
+	/// `setViewControllers` call, then pushes the final (target) folder with the usual
+	/// animated transition - one clean push the user actually sees, no per-level
+	/// animation cost, and (critically) no SwiftUI `NavigationLink` involved anywhere
+	/// in the process to fight with the manual stack mutation.
+	private func pushChain(_ chain: [URL], displayName: String?, on navigationController: UINavigationController) {
+		let hostingControllers: [UIViewController] = chain.enumerated().map { index, url in
+			let view = FileBrowserView(rootURL: url, displayName: index == chain.count - 1 ? displayName : nil)
+				.environmentObject(settings)
+				.environmentObject(clipboard)
+				.environmentObject(bookmarks)
+				.environmentObject(remoteConnections)
+			return UIHostingController(rootView: view)
+		}
+		guard let last = hostingControllers.last else { return }
+		navigationController.setViewControllers(navigationController.viewControllers + hostingControllers.dropLast(), animated: false)
+		navigationController.pushViewController(last, animated: true)
 	}
 
 	private func isAddedFolderOrRemoteRoot(_ root: URL) -> Bool {
@@ -858,59 +888,37 @@ struct FileBrowserView: View {
 	}
 }
 
-/// Pushes every folder in `chain` onto the real `UINavigationController` at once, via
-/// a single non-animated `setViewControllers` call — not a chain of reactive
-/// `NavigationLink(isActive:)` auto-triggers, which proved unreliable for more than
-/// one level (SwiftUI's `NavigationView` loses track of the stack and bounces between
-/// the first two) and, even fixed to not race, would still cost a full push-transition
-/// duration *per level* for a long path. `FileBrowserView` for `chain[0]` gets pushed
-/// normally (with the usual animated transition, from whoever presented this) as an
-/// invisible placeholder; the instant it's actually on the navigation stack
-/// (`viewDidAppear`, when `navigationController` is guaranteed non-nil) it's replaced
-/// in one atomic step by the real chain, with the final level's `displayName` applied.
-/// Backing out afterward still walks the real stack one level at a time, exactly as if
-/// each folder had been tapped by hand.
-private struct ChainPushRoute: UIViewControllerRepresentable {
-	let chain: [URL]
-	let displayName: String?
+/// Captures the real `UINavigationController` hosting this specific `FileBrowserView`
+/// screen, once, and hands it back via `onResolve` - used only so a multi-level
+/// Bookmarks/Recents chain jump (`pushChain`) can push straight onto it later,
+/// entirely outside SwiftUI's own `NavigationLink`/`isActive` machinery. Driving that
+/// same push *through* a live `NavigationLink` (even indirectly, via a
+/// `UIViewControllerRepresentable` that swaps itself out after appearing) still left
+/// SwiftUI convinced it owned that stack slot; it "reconciled" its own tracked
+/// destination against the manually-pushed one and reverted the change - the target
+/// flashing on screen and then reverting to an earlier level. A stack mutation that no
+/// `NavigationLink` ever claimed ownership of has nothing for SwiftUI to revert.
+private struct NavigationControllerAccessor: UIViewControllerRepresentable {
+	let onResolve: (UINavigationController) -> Void
 
-	@EnvironmentObject private var settings: SettingsStore
-	@EnvironmentObject private var clipboard: ClipboardStore
-	@EnvironmentObject private var bookmarks: BookmarksStore
-	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
-
-	func makeUIViewController(context: Context) -> ChainPlaceholderViewController {
-		let controller = ChainPlaceholderViewController()
-		let hostingControllers: [UIViewController] = chain.enumerated().map { index, url in
-			let view = FileBrowserView(rootURL: url, displayName: index == chain.count - 1 ? displayName : nil)
-				.environmentObject(settings)
-				.environmentObject(clipboard)
-				.environmentObject(bookmarks)
-				.environmentObject(remoteConnections)
-			return UIHostingController(rootView: view)
-		}
-		controller.onAppearOnce = { navigationController in
-			let stack = navigationController.viewControllers.dropLast() + hostingControllers
-			navigationController.setViewControllers(Array(stack), animated: false)
-		}
+	func makeUIViewController(context: Context) -> ResolverViewController {
+		let controller = ResolverViewController()
+		controller.onResolve = onResolve
 		return controller
 	}
 
-	func updateUIViewController(_ uiViewController: ChainPlaceholderViewController, context: Context) {}
+	func updateUIViewController(_ uiViewController: ResolverViewController, context: Context) {
+		uiViewController.onResolve = onResolve
+	}
 }
 
-private final class ChainPlaceholderViewController: UIViewController {
-	var onAppearOnce: ((UINavigationController) -> Void)?
-
-	override func viewDidLoad() {
-		super.viewDidLoad()
-		view.backgroundColor = .systemBackground
-	}
+private final class ResolverViewController: UIViewController {
+	var onResolve: ((UINavigationController) -> Void)?
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
-		guard let onAppearOnce, let navigationController else { return }
-		self.onAppearOnce = nil
-		onAppearOnce(navigationController)
+		if let navigationController {
+			onResolve?(navigationController)
+		}
 	}
 }
