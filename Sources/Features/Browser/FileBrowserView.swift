@@ -644,11 +644,16 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// `.contentShape` + `.onTapGesture` makes the *entire* pill focus the field, not
-	/// just wherever `TextField`'s own narrow hit-testing region happens to land -
-	/// taps landing directly on the text itself still reach `TextField` first and
-	/// behave normally (placing the cursor); everything else in the pill (the icon,
-	/// the padding) falls through to this gesture instead of doing nothing.
+	/// Both `searchOrPathField` and `modeToggleButton` share the exact same PartyUI
+	/// recipe - `TextFieldBackground`/`TranslucentButtonStyle` both apply an identical
+	/// unconfigurable `.padding()` before filling their shape - so the pill and the
+	/// circle land at the same height by construction, not by hand-tuning two
+	/// separate frames to match. `.contentShape` + `.onTapGesture` makes the *entire*
+	/// pill focus the field, not just wherever `TextField`'s own narrow hit-testing
+	/// region happens to land - taps landing directly on the text itself still reach
+	/// `TextField` first and behave normally (placing the cursor); everything else in
+	/// the pill (the icon, the padding) falls through to this gesture instead of
+	/// doing nothing.
 	private var searchOrPathField: some View {
 		HStack(spacing: 8) {
 			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
@@ -669,9 +674,7 @@ struct FileBrowserView: View {
 				.buttonStyle(.plain)
 			}
 		}
-		.padding(.horizontal, 14)
-		.frame(height: 44)
-		.background(Color(.quaternarySystemFill), in: Capsule())
+		.modifier(TextFieldBackground(shape: Capsule()))
 		.contentShape(Capsule())
 		.onTapGesture { isSearchFieldFocused = true }
 	}
@@ -682,10 +685,8 @@ struct FileBrowserView: View {
 		} label: {
 			Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right")
 				.font(.system(size: 17, weight: .semibold))
-				.foregroundStyle(Color(.label))
-				.frame(width: 44, height: 44)
-				.background(Color(.quaternarySystemFill), in: Circle())
 		}
+		.buttonStyle(TranslucentButtonStyle(color: Color(.label), shape: Circle(), useFullWidth: false))
 	}
 
 	@ViewBuilder
