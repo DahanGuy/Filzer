@@ -68,7 +68,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearchFieldFocused || isSearchActive || isPathInputMode {
+			if isSearchFieldFocused || (!isPathInputMode && isSearchActive) {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -146,10 +146,16 @@ struct FileBrowserView: View {
 			SettingsView()
 		}
 		.onChange(of: searchQuery) { _ in
+			guard isSearchFieldFocused else { return }
 			if isPathInputMode {
 				schedulePathSuggestions()
 			} else {
 				scheduleSearch()
+			}
+		}
+		.onChange(of: isSearchFieldFocused) { focused in
+			if focused, isPathInputMode {
+				schedulePathSuggestions()
 			}
 		}
 		.task {
@@ -354,17 +360,15 @@ struct FileBrowserView: View {
 		}
 	}
 
+	/// Only pre-fills the field's text and switches its icon/placeholder - never
+	/// forces focus or fetches suggestions itself. Autosuggest only starts once the
+	/// user actually taps into the field (see `searchOrPathField`'s tap gesture and
+	/// the `isSearchFieldFocused` onChange above).
 	private func togglePathInputMode() {
 		isPathInputMode.toggle()
-		if isPathInputMode {
-			searchQuery = rootURL.path
-			isSearchFieldFocused = true
-			schedulePathSuggestions()
-		} else {
-			searchQuery = ""
-			pathSuggestions = []
-			isSearchFieldFocused = false
-		}
+		isSearchFieldFocused = false
+		pathSuggestions = []
+		searchQuery = isPathInputMode ? rootURL.path : ""
 	}
 
 	/// Clears the field and fully exits search/path-input mode - the bottom bar's own
@@ -640,6 +644,11 @@ struct FileBrowserView: View {
 		}
 	}
 
+	/// `.contentShape` + `.onTapGesture` makes the *entire* pill focus the field, not
+	/// just wherever `TextField`'s own narrow hit-testing region happens to land -
+	/// taps landing directly on the text itself still reach `TextField` first and
+	/// behave normally (placing the cursor); everything else in the pill (the icon,
+	/// the padding) falls through to this gesture instead of doing nothing.
 	private var searchOrPathField: some View {
 		HStack(spacing: 8) {
 			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
@@ -651,7 +660,7 @@ struct FileBrowserView: View {
 				.onSubmit {
 					if isPathInputMode { navigate(to: URL(fileURLWithPath: searchQuery), displayName: nil) }
 				}
-			if !searchQuery.isEmpty {
+			if isSearchFieldFocused && !searchQuery.isEmpty {
 				Button {
 					clearSearch()
 				} label: {
@@ -663,6 +672,8 @@ struct FileBrowserView: View {
 		.padding(.horizontal, 14)
 		.frame(height: 44)
 		.background(Color(.quaternarySystemFill), in: Capsule())
+		.contentShape(Capsule())
+		.onTapGesture { isSearchFieldFocused = true }
 	}
 
 	private var modeToggleButton: some View {
