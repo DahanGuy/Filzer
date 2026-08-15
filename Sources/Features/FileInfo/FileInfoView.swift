@@ -1,3 +1,4 @@
+import PartyUI
 import SwiftUI
 
 /// The "Properties" sheet: name/path/size/dates, symlink destination, ownership,
@@ -16,7 +17,7 @@ struct FileInfoView: View {
 
 	var body: some View {
 		List {
-			Section("Information") {
+			Section(header: HeaderLabel(text: "Information", icon: "info.circle")) {
 				infoRow("Name", node.name)
 				infoRow("Path", node.url.path)
 				infoRow("Type", typeDescription)
@@ -34,13 +35,13 @@ struct FileInfoView: View {
 			}
 
 			if let imageDimensions {
-				Section("Image") {
+				Section(header: HeaderLabel(text: "Image", icon: "photo")) {
 					infoRow("Dimensions", "\(Int(imageDimensions.width)) \u{00d7} \(Int(imageDimensions.height))")
 				}
 			}
 
 			if let mediaMetadata {
-				Section("Media") {
+				Section(header: HeaderLabel(text: "Media", icon: "waveform")) {
 					if let duration = mediaMetadata.duration {
 						infoRow("Length", formattedDuration(duration))
 					}
@@ -53,12 +54,12 @@ struct FileInfoView: View {
 				}
 			}
 
-			Section("Ownership") {
+			Section(header: HeaderLabel(text: "Ownership", icon: "person.2")) {
 				infoRow("Owner", node.ownerAccountName ?? "\u{2014}")
 				infoRow("Group", node.groupOwnerAccountName ?? "\u{2014}")
 			}
 
-			Section("Access Permissions") {
+			Section(header: HeaderLabel(text: "Access Permissions", icon: "lock")) {
 				infoRow("Permissions", POSIXPermissions(mode: node.posixPermissions).symbolicString)
 				infoRow("Octal", POSIXPermissions(mode: node.posixPermissions).octalString)
 				Button("Edit Permissions\u{2026}") { showingPermissionsEditor = true }

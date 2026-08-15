@@ -569,7 +569,7 @@ struct FileBrowserView: View {
 		.padding(10)
 		.frame(maxWidth: .infinity)
 		.background(
-			RoundedRectangle(cornerRadius: 14, style: .continuous)
+			RoundedRectangle(cornerRadius: cornerRad.component, style: .continuous)
 				.fill(isSelected ? Color.accentColor.opacity(0.15) : Color(.secondarySystemBackground))
 		)
 		.opacity(node.isHidden ? 0.85 : 1)
@@ -619,13 +619,16 @@ struct FileBrowserView: View {
 	/// The search bar itself, at the bottom - not `.searchable`'s default top
 	/// placement - a capsule field with a separate, standalone circular button beside
 	/// it (same layout Contacts' own bottom search bar uses for its "+", just with a
-	/// path-mode icon instead). Deliberately a `.safeAreaInset`, not a
-	/// `ToolbarItem(placement: .bottomBar)`: the toolbar version was prone to
-	/// rendering a stray, blank button-shaped artifact at the bottom under some
-	/// content-change sequences - a known category of `ToolbarItem`/`.bottomBar`
-	/// flakiness when its content changes shape dynamically. A safe-area inset is a
-	/// plain view modifier on the main content, entirely outside the toolbar layout
-	/// system, so there's nothing left for it to misrender.
+	/// path-mode icon instead). Backed by PartyUI's `OverlayBackground` - its
+	/// progressive blur plus keyboard-aware bottom padding is exactly the "anything
+	/// that uses safeAreaInset(edge: .bottom)" case its own docs describe.
+	/// Deliberately a `.safeAreaInset`, not a `ToolbarItem(placement: .bottomBar)`:
+	/// the toolbar version was prone to rendering a stray, blank button-shaped
+	/// artifact at the bottom under some content-change sequences - a known category
+	/// of `ToolbarItem`/`.bottomBar` flakiness when its content changes shape
+	/// dynamically. A safe-area inset is a plain view modifier on the main content,
+	/// entirely outside the toolbar layout system, so there's nothing left for it to
+	/// misrender.
 	@ViewBuilder
 	private var bottomSearchBar: some View {
 		if !viewModel.isSelecting {
@@ -633,9 +636,7 @@ struct FileBrowserView: View {
 				searchOrPathField
 				modeToggleButton
 			}
-			.padding(.horizontal)
-			.padding(.vertical, 8)
-			.background(.bar)
+			.modifier(OverlayBackground())
 		}
 	}
 
@@ -661,7 +662,7 @@ struct FileBrowserView: View {
 		}
 		.padding(.horizontal, 14)
 		.frame(height: 44)
-		.background(Color(.secondarySystemBackground), in: Capsule())
+		.background(Color(.quaternarySystemFill), in: Capsule())
 	}
 
 	private var modeToggleButton: some View {
@@ -672,7 +673,7 @@ struct FileBrowserView: View {
 				.font(.system(size: 17, weight: .semibold))
 				.foregroundStyle(Color(.label))
 				.frame(width: 44, height: 44)
-				.background(Color(.secondarySystemBackground), in: Circle())
+				.background(Color(.quaternarySystemFill), in: Circle())
 		}
 	}
 

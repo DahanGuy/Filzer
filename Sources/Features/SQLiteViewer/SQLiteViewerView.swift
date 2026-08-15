@@ -1,3 +1,4 @@
+import PartyUI
 import SwiftUI
 
 /// `Result`'s failure case must conform to `Error`; a plain `String` doesn't. This is
@@ -27,11 +28,11 @@ struct SQLiteViewerView: View {
 				Button {
 					isShowingQuerySheet = true
 				} label: {
-					Label("Run SQL", systemImage: "terminal")
+					NavigationLabel(text: "Run SQL", icon: "terminal", showChevron: false)
 				}
 			}
 
-			Section(header: Text("Tables")) {
+			Section(header: HeaderLabel(text: "Tables", icon: "tablecells")) {
 				if isLoadingTables {
 					HStack {
 						Spacer()
@@ -44,7 +45,7 @@ struct SQLiteViewerView: View {
 				} else {
 					ForEach(tableNames, id: \.self) { name in
 						NavigationLink(destination: SQLiteTableView(url: url, table: name)) {
-							Label(name, systemImage: "tablecells")
+							NavigationLabel(text: name, icon: "tablecells")
 						}
 					}
 				}

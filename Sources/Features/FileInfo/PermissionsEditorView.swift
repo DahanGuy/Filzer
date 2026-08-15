@@ -1,3 +1,4 @@
+import PartyUI
 import SwiftUI
 
 /// Filza's "Access Permissions" screen: independent rwx toggles per owner/group/other,
@@ -18,19 +19,19 @@ struct PermissionsEditorView: View {
 
 	var body: some View {
 		Form {
-			Section("Owner") { triadToggles(\.owner) }
-			Section("Group") { triadToggles(\.group) }
-			Section("Others") { triadToggles(\.others) }
+			Section(header: HeaderLabel(text: "Owner", icon: "person.fill")) { triadToggles(\.owner) }
+			Section(header: HeaderLabel(text: "Group", icon: "person.2.fill")) { triadToggles(\.group) }
+			Section(header: HeaderLabel(text: "Others", icon: "globe")) { triadToggles(\.others) }
 
-			Section("Special") {
-				Toggle("Set UID", isOn: $permissions.setUID)
-				Toggle("Set GID", isOn: $permissions.setGID)
-				Toggle("Sticky", isOn: $permissions.sticky)
+			Section(header: HeaderLabel(text: "Special", icon: "sparkles")) {
+				PlainToggle(text: "Set UID", icon: "person.fill.viewfinder", isOn: $permissions.setUID)
+				PlainToggle(text: "Set GID", icon: "person.3.fill", isOn: $permissions.setGID)
+				PlainToggle(text: "Sticky", icon: "pin.fill", isOn: $permissions.sticky)
 			}
 
 			if node.isDirectory {
 				Section {
-					Toggle("Apply to Enclosed Items", isOn: $applyToEnclosedItems)
+					PlainToggle(text: "Apply to Enclosed Items", icon: "square.stack.3d.up.fill", isOn: $applyToEnclosedItems)
 				}
 			}
 
@@ -59,9 +60,9 @@ struct PermissionsEditorView: View {
 
 	@ViewBuilder
 	private func triadToggles(_ keyPath: WritableKeyPath<POSIXPermissions, POSIXPermissions.Triad>) -> some View {
-		Toggle("Read", isOn: binding(keyPath, \.read))
-		Toggle("Write", isOn: binding(keyPath, \.write))
-		Toggle("Execute", isOn: binding(keyPath, \.execute))
+		PlainToggle(text: "Read", icon: "eye.fill", isOn: binding(keyPath, \.read))
+		PlainToggle(text: "Write", icon: "pencil", isOn: binding(keyPath, \.write))
+		PlainToggle(text: "Execute", icon: "play.fill", isOn: binding(keyPath, \.execute))
 	}
 
 	private func binding(

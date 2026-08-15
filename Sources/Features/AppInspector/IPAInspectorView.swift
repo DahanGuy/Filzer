@@ -55,21 +55,9 @@ struct IPAInspectorView: View {
 		.padding(.vertical, 4)
 	}
 
-	@ViewBuilder
 	private func iconView(for summary: IPASummary) -> some View {
-		let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-		if let iconData = summary.iconData, let icon = UIImage(data: iconData) {
-			Image(uiImage: icon)
-				.resizable()
-				.aspectRatio(contentMode: .fill)
-				.frame(width: 64, height: 64)
-				.clipShape(shape)
-		} else {
-			shape
-				.fill(Color(.systemGray5))
-				.frame(width: 64, height: 64)
-				.overlay(Image(systemName: "app").foregroundStyle(.secondary))
-		}
+		let icon = summary.iconData.flatMap(UIImage.init(data:))
+		return AppIcon(image: Image(uiImage: icon ?? UIImage()))
 	}
 
 	private func infoRow(_ label: String, _ value: String) -> some View {
