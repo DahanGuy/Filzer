@@ -617,25 +617,21 @@ struct FileBrowserView: View {
 	}
 
 	/// The search bar itself, at the bottom - not `.searchable`'s default top
-	/// placement - with the mode-toggle button beside it, exactly the layout Filza
-	/// itself (and plenty of other apps) use for this. Deliberately a
-	/// `.safeAreaInset`, not a `ToolbarItem(placement: .bottomBar)`: the toolbar
-	/// version was prone to rendering a stray, blank button-shaped artifact at the
-	/// bottom under some content-change sequences - a known category of
-	/// `ToolbarItem`/`.bottomBar` flakiness when its content changes shape
-	/// dynamically. A safe-area inset is a plain view modifier on the main content,
-	/// entirely outside the toolbar layout system, so there's nothing left for it to
-	/// misrender.
+	/// placement - a capsule field with a separate, standalone circular button beside
+	/// it (same layout Contacts' own bottom search bar uses for its "+", just with a
+	/// path-mode icon instead). Deliberately a `.safeAreaInset`, not a
+	/// `ToolbarItem(placement: .bottomBar)`: the toolbar version was prone to
+	/// rendering a stray, blank button-shaped artifact at the bottom under some
+	/// content-change sequences - a known category of `ToolbarItem`/`.bottomBar`
+	/// flakiness when its content changes shape dynamically. A safe-area inset is a
+	/// plain view modifier on the main content, entirely outside the toolbar layout
+	/// system, so there's nothing left for it to misrender.
 	@ViewBuilder
 	private var bottomSearchBar: some View {
 		if !viewModel.isSelecting {
 			HStack(spacing: 10) {
 				searchOrPathField
-				Button {
-					togglePathInputMode()
-				} label: {
-					Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right.circle")
-				}
+				modeToggleButton
 			}
 			.padding(.horizontal)
 			.padding(.vertical, 8)
@@ -644,7 +640,7 @@ struct FileBrowserView: View {
 	}
 
 	private var searchOrPathField: some View {
-		HStack(spacing: 6) {
+		HStack(spacing: 8) {
 			Image(systemName: isPathInputMode ? "arrow.forward.to.line" : "magnifyingglass")
 				.foregroundStyle(.secondary)
 			TextField(isPathInputMode ? "Path" : "Search", text: $searchQuery)
@@ -663,9 +659,21 @@ struct FileBrowserView: View {
 				.buttonStyle(.plain)
 			}
 		}
-		.padding(.horizontal, 10)
-		.padding(.vertical, 7)
-		.background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+		.padding(.horizontal, 14)
+		.frame(height: 44)
+		.background(Color(.secondarySystemBackground), in: Capsule())
+	}
+
+	private var modeToggleButton: some View {
+		Button {
+			togglePathInputMode()
+		} label: {
+			Image(systemName: isPathInputMode ? "magnifyingglass" : "arrow.triangle.turn.up.right")
+				.font(.system(size: 17, weight: .semibold))
+				.foregroundStyle(Color(.label))
+				.frame(width: 44, height: 44)
+				.background(Color(.secondarySystemBackground), in: Circle())
+		}
 	}
 
 	@ViewBuilder
