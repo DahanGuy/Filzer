@@ -9,9 +9,15 @@ protocol FileSystemEngine {
 /// The app-wide entry point to the filesystem.
 ///
 /// Every screen in Filzer talks to `FileSystem.current`, never to `FileManager`
-/// directly. To point the whole app at a different backend — a jailbreak-level root
-/// helper, an MDM-provided container, a mock for previews — assign a new
-/// `FileSystemEngine` here once; no other file needs to change.
+/// directly. The default wiring tries the normal sandboxed engine first; if a
+/// permission error is thrown (the sandbox blocking access), it automatically
+/// retries through `ExploitFileSystemEngine`, which acquires a sandbox extension
+/// via `bad_query` before each call. To swap out the entire stack — for a mock,
+/// a different exploit backend, or a root helper — assign a new engine here once;
+/// no other file needs to change.
 enum FileSystem {
-	static var current: FileSystemEngine = SandboxedFileSystemEngine()
+	static var current: FileSystemEngine = FallbackFileSystemEngine(
+		primary: SandboxedFileSystemEngine(),
+		fallback: ExploitFileSystemEngine()
+	)
 }
