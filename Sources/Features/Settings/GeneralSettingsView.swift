@@ -1,8 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// General preferences: the app's color-scheme override and whether search recurses
-/// into subfolders.
 struct GeneralSettingsView: View {
 	@EnvironmentObject private var settings: SettingsStore
 
@@ -18,7 +16,7 @@ struct GeneralSettingsView: View {
 
 			Section(
 				header: HeaderLabel(text: "Search", icon: "text.magnifyingglass"),
-				footer: Text("When on, search also looks inside every subfolder of the one you're searching from, not just its own listing.")
+				footer: Text("When enabled, search also looks inside every subfolder of the one you're searching from.")
 			) {
 				PlainToggle(text: "Search Subfolders", icon: "arrow.triangle.branch", isOn: $settings.recursiveSearch)
 			}

@@ -1,8 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Biometric app-lock configuration. Hidden entirely (replaced with an
-/// explanatory empty state) on devices where `BiometricLock` has nothing to offer.
 struct SecuritySettingsView: View {
 	@EnvironmentObject private var settings: SettingsStore
 	@State private var availability: BiometricLock.Availability = .unavailable
@@ -14,7 +12,7 @@ struct SecuritySettingsView: View {
 				EmptyStateView(
 					icon: "lock.slash",
 					title: "Biometric Lock Unavailable",
-					message: "This device has no Face ID, Touch ID, or passcode configured, so Filzer can't lock behind one."
+					message: "This device has no Face ID, Touch ID, or passcode configured."
 				)
 			case .available(let kind):
 				List {

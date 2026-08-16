@@ -1,38 +1,37 @@
 import PartyUI
 import SwiftUI
 
-/// App version info plus credits for the open-source libraries Filzer is built on.
 struct AboutView: View {
 	var body: some View {
 		List {
 			Section {
-				AppInfoCell(build: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "")
+				AppInfoCell(build: "Beta")
 			}
 
 			Section(header: HeaderLabel(text: "Credits", icon: "star")) {
 				LinkCreditCell(
 					name: "PartyUI",
-					description: "The design system Filzer's rows, toggles, and buttons are built with.",
+					description: "The design system the app was built with.",
 					url: "https://github.com/jailbreakdotparty/PartyUI"
 				)
 				LinkCreditCell(
 					name: "ZIPFoundation",
-					description: "Reads and writes the zip archives behind Filzer's compress/extract tools.",
+					description: "Effortless ZIP Handling in Swift",
 					url: "https://github.com/weichsel/ZIPFoundation"
 				)
 				LinkCreditCell(
 					name: "SWCompression",
-					description: "Extracts tar, tar.gz, tar.bz2, and 7z archives.",
+					description: "A Swift framework for working with compression, archives and containers.",
 					url: "https://github.com/tsolomko/SWCompression"
 				)
 				LinkCreditCell(
 					name: "Unrar.swift",
-					description: "Extracts rar archives, including password-protected ones.",
+					description: "Swift library wraps unrar C++ library provided by rarlib.",
 					url: "https://github.com/mtgto/Unrar.swift"
 				)
 				LinkCreditCell(
 					name: "AMSMB2",
-					description: "Powers Filzer's SMB network location support.",
+					description: "Swift framework to connect SMB2/3 shares",
 					url: "https://github.com/amosavian/AMSMB2"
 				)
 			}

@@ -1,8 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// The Settings flyout: quick browsing toggles live inline, everything else
-/// (General, Security, File Associations, Backup/Restore, About) is a sub-screen.
 struct SettingsView: View {
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var settings: SettingsStore
@@ -23,14 +21,14 @@ struct SettingsView: View {
 					NavigationLink(destination: GeneralSettingsView()) {
 						NavigationLabel(text: "General", icon: "gear")
 					}
+					NavigationLink(destination: ExploitsSettingsView()) {
+						NavigationLabel(text: "Exploits", icon: "wrench.and.screwdriver")
+					}
 					NavigationLink(destination: SecuritySettingsView()) {
 						NavigationLabel(text: "Security", icon: "lock")
 					}
 					NavigationLink(destination: FileAssociationsSettingsView()) {
 						NavigationLabel(text: "File Associations", icon: "doc.badge.gearshape")
-					}
-					NavigationLink(destination: BackupRestoreView()) {
-						NavigationLabel(text: "Backup & Restore", icon: "arrow.triangle.2.circlepath")
 					}
 					NavigationLink(destination: AboutView()) {
 						NavigationLabel(text: "About", icon: "info.circle")
