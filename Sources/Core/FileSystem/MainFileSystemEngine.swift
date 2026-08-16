@@ -1,15 +1,5 @@
 import Foundation
 
-/// Tries `primary` first; if it throws a permission error, retries the same
-/// operation through `fallback`. Any non-permission error from `primary`
-/// propagates normally — the fallback only fires for sandbox access denial,
-/// not for "file not found", "already exists", or other legitimate failures.
-///
-/// This is the glue between `SandboxedFileSystemEngine` (which works inside
-/// the sandbox but fails outside it) and `ExploitFileSystemEngine` (which
-/// acquires sandbox extensions via `bad_query` before each call). The app
-/// tries the fast, no-exploit path first and only reaches for the exploit
-/// when actually blocked.
 final class MainFileSystemEngine: FileSystemEngine {
 	private let primary: FileSystemEngine
 	private let fallback: FileSystemEngine
@@ -20,6 +10,9 @@ final class MainFileSystemEngine: FileSystemEngine {
 	}
 
 	func execute(_ operation: FileOperation) async throws -> FileOperationResult {
+		if shouldSkipPrimary(for: operation) {
+			return try await fallback.execute(operation)
+		}
 		do {
 			return try await primary.execute(operation)
 		} catch let error where Self.isPermissionError(error) {
@@ -27,34 +20,52 @@ final class MainFileSystemEngine: FileSystemEngine {
 		}
 	}
 
-	/// Checks whether an error is a permission/access denial that the exploit
-	/// engine might be able to overcome, versus a legitimate failure (file not
-	/// found, already exists, invalid name, etc.) that retrying won't fix.
-	private static func isPermissionError(_ error: Error) -> Bool {
-		// Our own explicit access-denied case
-		if case FileSystemError.accessDenied = error { return true }
+	private func shouldSkipPrimary(for operation: FileOperation) -> Bool {
+		guard let url = Self.primaryLocalURL(for: operation) else { return false }
+		let fm = FileManager.default
+		if fm.isReadableFile(atPath: url.path) { return false }
+		if fm.isReadableFile(atPath: url.deletingLastPathComponent().path) { return false }
+		return true
+	}
 
-		// FileManager throws CocoaErrors for permission failures
+	private static func primaryLocalURL(for operation: FileOperation) -> URL? {
+		let url: URL
+		switch operation {
+		case .listDirectory(let u, _), .nodeInfo(let u), .createDirectory(let u),
+			 .createFile(let u, _), .readFile(let u), .writeFile(let u, _),
+			 .calculateSize(let u), .volumeInfo(let u), .search(let u, _, _),
+			 .createSymbolicLink(let u, _), .createHardLink(let u, _),
+			 .renameItem(let u, _):
+			url = u
+		case .copyItem(let src, _), .moveItem(let src, _):
+			url = src
+		case .delete(let urls), .copyItems(let urls, _), .moveItems(let urls, _),
+			 .compressItems(let urls, _), .setPermissions(let urls, _, _):
+			guard let first = urls.first else { return nil }
+			url = first
+		case .extractArchive(let archive, _, _), .listArchiveEntries(let archive, _),
+			 .extractArchiveEntry(let archive, _, _, _):
+			url = archive
+		}
+		return RemoteURL.isRemote(url) ? nil : url
+	}
+
+	private static func isPermissionError(_ error: Error) -> Bool {
+		if case FileSystemError.accessDenied = error { return true }
 		let nsError = error as NSError
 		if nsError.domain == NSCocoaErrorDomain {
 			switch nsError.code {
 			case CocoaError.fileReadNoPermission.rawValue,
 				 CocoaError.fileWriteNoPermission.rawValue,
 				 CocoaError.fileReadNoSuchFile.rawValue:
-				// fileReadNoSuchFile is included because the sandbox sometimes
-				// reports "no such file" for paths it's actually blocking access
-				// to — the file exists, but the sandbox makes it invisible.
 				return true
 			default:
 				return false
 			}
 		}
-
-		// Low-level POSIX errors from direct syscalls
 		if nsError.domain == NSPOSIXErrorDomain {
-			return nsError.code == 1 /* EPERM */ || nsError.code == 13 /* EACCES */
+			return nsError.code == 1 || nsError.code == 13
 		}
-
 		return false
 	}
 }
