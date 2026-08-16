@@ -17,9 +17,6 @@ enum DirectoryLister {
 				nodes.append(node)
 			}
 		}
-		if nodes.isEmpty && !visibleNames.isEmpty {
-			throw FileSystemError.accessDenied(directory)
-		}
 		return nodes
 	}
 }
