@@ -10,7 +10,7 @@ import Foundation
 /// acquires sandbox extensions via `bad_query` before each call). The app
 /// tries the fast, no-exploit path first and only reaches for the exploit
 /// when actually blocked.
-final class FallbackFileSystemEngine: FileSystemEngine {
+final class MainFileSystemEngine: FileSystemEngine {
 	private let primary: FileSystemEngine
 	private let fallback: FileSystemEngine
 
