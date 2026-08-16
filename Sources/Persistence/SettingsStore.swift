@@ -85,10 +85,7 @@ final class SettingsStore: ObservableObject {
 	}
 
 	private static let defaultExploits: [Exploit] = [
-		Exploit(name: "DarkSword", version: "iOS 26.0.1", isEnabled: false),
-		Exploit(name: "MDC", version: "iOS 16", isEnabled: false),
-		Exploit(name: "Coruna", version: "iOS 18", isEnabled: false),
-		Exploit(name: "bad_query", version: "iOS 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
-		Exploit(name: "MobileHouseArrest", version: "iOS 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
+		Exploit(name: "MobileHouseArrest", version: "iOS 18 (maybe), 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
+		Exploit(name: "bad_query", version: "iOS 18 (maybe), 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
 	]
 }
