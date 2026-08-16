@@ -110,13 +110,11 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 				guard !RemoteURL.isRemote(url) else {
 					throw FileSystemError.unsupported("Permissions can't be changed on network locations.")
 				}
-				if recursive { try verifyLocalAccess(url) }
 				try applyPermissions(posixPermissions, to: url, recursive: recursive)
 			}
 			return .done
 
 		case .calculateSize(let url):
-			if !RemoteURL.isRemote(url) { try verifyLocalAccess(url) }
 			return .size(try await calculateSizeRecursively(of: url))
 
 		case .compressItems(let urls, let destination):
@@ -140,7 +138,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 			guard !RemoteURL.isRemote(root) else {
 				throw FileSystemError.unsupported("Search isn't available for network locations yet.")
 			}
-			try verifyLocalAccess(root)
 			return .nodes(try FileSearchEngine.search(root: root, query: query, includeHidden: includeHidden))
 
 		case .volumeInfo(let url):
@@ -392,15 +389,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
 		guard !trimmed.isEmpty, !trimmed.contains("/"), trimmed != ".", trimmed != ".." else {
 			throw FileSystemError.invalidName(name)
-		}
-	}
-
-	private func verifyLocalAccess(_ directory: URL) throws {
-		let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
-		guard let first = names.first else { return }
-		let child = directory.appendingPathComponent(first)
-		guard (try? FileManager.default.attributesOfItem(atPath: child.path)) != nil else {
-			throw FileSystemError.accessDenied(directory)
 		}
 	}
 
