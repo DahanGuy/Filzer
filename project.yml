@@ -38,6 +38,8 @@ targets:
       - package: SWCompression
       - package: Unrar
       - package: AMSMB2
+        embed: true
+        codeSign: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.guy.filzer
