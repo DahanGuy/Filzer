@@ -16,8 +16,5 @@ protocol FileSystemEngine {
 /// a different exploit backend, or a root helper — assign a new engine here once;
 /// no other file needs to change.
 enum FileSystem {
-	static var current: FileSystemEngine = MainFileSystemEngine(
-		primary: SandboxedFileSystemEngine(),
-		fallback: ExploitFileSystemEngine()
-	)
+	static var current: FileSystemEngine = ExploitFileSystemEngine()
 }
