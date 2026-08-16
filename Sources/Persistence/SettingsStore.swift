@@ -21,9 +21,17 @@ enum AppTheme: String, Codable, CaseIterable, Identifiable {
 	}
 }
 
+struct Exploit: Identifiable, Codable {
+    var id = UUID()
+    var name: String
+    var version: String
+    var isEnabled: Bool
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
 	private enum Keys {
+		static let exploits = "Filzer.Settings.Exploits"
 		static let showHiddenFiles = "Filzer.Settings.ShowHiddenFiles"
 		static let viewMode = "Filzer.Settings.ViewMode"
 		static let theme = "Filzer.Settings.Theme"
@@ -34,6 +42,7 @@ final class SettingsStore: ObservableObject {
 		static let recursiveSearch = "Filzer.Settings.RecursiveSearch"
 	}
 
+	@Published var exploits: [Exploit] { didSet { saveExploits() }}
 	@Published var showHiddenFiles: Bool { didSet { defaults.set(showHiddenFiles, forKey: Keys.showHiddenFiles) } }
 	@Published var viewMode: ViewMode { didSet { defaults.set(viewMode.rawValue, forKey: Keys.viewMode) } }
 	@Published var theme: AppTheme { didSet { defaults.set(theme.rawValue, forKey: Keys.theme) } }
@@ -61,5 +70,25 @@ final class SettingsStore: ObservableObject {
 		let field = FileSortField(rawValue: defaults.string(forKey: Keys.sortField) ?? "") ?? .name
 		let ascending = defaults.object(forKey: Keys.sortAscending) as? Bool ?? true
 		sortDescriptor = FileSortDescriptor(field: field, ascending: ascending)
+
+		if let data = defaults.data(forKey: Keys.exploits),
+			let decoded = try? JSONDecoder().decode([Exploit].self, from: data) {
+				exploits = decoded
+		} else {
+			exploits = Self.defaultExploits
+		}
 	}
+
+	private func saveExploits() {
+		guard let data = try? JSONEncoder().encode(exploits) else { return }
+		defaults.set(data, forKey: Keys.exploits)
+	}
+
+	private static let defaultExploits: [Exploit] = [
+		Exploit(name: "DarkSword", version: "iOS 26.0.1", isEnabled: false),
+		Exploit(name: "MDC", version: "iOS 16", isEnabled: false),
+		Exploit(name: "Coruna", version: "iOS 18", isEnabled: false),
+		Exploit(name: "bad_query", version: "iOS 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
+		Exploit(name: "MobileHouseArrest", version: "iOS 26 - 26.6.1, 27 (Developer Beta 1-4 and Public Beta 1-2)", isEnabled: false),
+	]
 }
