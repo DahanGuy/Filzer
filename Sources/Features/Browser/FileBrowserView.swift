@@ -126,23 +126,25 @@ struct FileBrowserView: View {
 		} message: {
 			Text("\"\(archivePasswordPromptURL?.lastPathComponent ?? "")\" is password-protected.")
 		}
-		.popover(isPresented: $showingDisks) {
+		.sheet(isPresented: $showingDisks) {
 			NavigationView {
 				DisksFlyoutView(onNavigate: { navigate(to: $0, displayName: $1) })
 			}.navigationViewStyle(.stack)
 		}
-		.popover(isPresented: $showingBookmarks) {
+		.sheet(isPresented: $showingBookmarks) {
 			NavigationView {
 				BookmarksFlyoutView(currentPath: rootURL.path, onNavigate: { navigate(to: $0, displayName: $1, chainFromRoot: true) })
 			}.navigationViewStyle(.stack)
 		}
-		.popover(isPresented: $showingRecents) {
+		.sheet(isPresented: $showingRecents) {
 			NavigationView {
 				RecentsFlyoutView(onNavigate: { navigate(to: $0, displayName: $1, chainFromRoot: true) })
 			}.navigationViewStyle(.stack)
 		}
-		.popover(isPresented: $showingSettings) {
-			SettingsView()
+		.sheet(isPresented: $showingSettings) {
+			NavigationView {
+				SettingsView()
+			}.navigationViewStyle(.stack)
 		}
 		.sheet(isPresented: $showingPathNavigator) {
 			NavigationView {

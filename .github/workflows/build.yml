@@ -53,9 +53,9 @@ jobs:
         run: |
           app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
           ldid -SResources/Filzer.entitlements "$app_path/Filzer"
-          mkdir Payload-TS
-          cp -r "$app_path" Payload-TS/
-          cd Payload-TS && zip -qr ../Filzer.tipa . && cd ..
+          mkdir -p Payload-TS/Payload
+          cp -r "$app_path" Payload-TS/Payload/
+          cd Payload-TS && zip -qr ../Filzer.tipa Payload && cd ..
           rm -rf Payload-TS
 
       - name: Upload IPA
