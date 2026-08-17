@@ -46,10 +46,13 @@ jobs:
           zip -qr Filzer.ipa Payload
           rm -rf Payload
 
+      - name: Install ldid
+        run: brew install ldid
+
       - name: Package TIPA (TrollStore)
         run: |
           app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
-          ldid -Sresources/Filzer.entitlements "$app_path/Filzer"
+          ldid -SResources/Filzer.entitlements "$app_path/Filzer"
           mkdir Payload-TS
           cp -r "$app_path" Payload-TS/
           cd Payload-TS && zip -qr ../Filzer.tipa . && cd ..
