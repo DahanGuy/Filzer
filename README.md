@@ -27,14 +27,10 @@ And thats how Filzer was made.
 - **Biometric Lock** - Face ID / Touch ID or Passcode app lock
 - **Permissions Editor** - set read/write or execute permissions for owner, group and others.
 
-
-
 ## Requirements
 
 - Xcode 13+ (with iOS/iPadOS SDK)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-
-
 
 ## TODO
 
@@ -58,4 +54,3 @@ Filzer was made with AI, why? well Filzer was supposed to be a personal project 
 - [Unrar.swift](https://github.com/mtgto/Unrar.swift) - RAR extraction
 - [AMSMB2](https://github.com/amosavian/AMSMB2) - SMB support
 - Filza - Inspiration
-
