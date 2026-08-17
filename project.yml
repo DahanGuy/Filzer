@@ -42,15 +42,13 @@ targets:
         codeSign: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.apple.mobile.MobileHouseArrest
+        PRODUCT_BUNDLE_IDENTIFIER: com.guy.filzer
         INFOPLIST_FILE: Resources/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_VERSION: "5.0"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_IDENTITY: "iPhone Developer"
-        SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridging-Header.h
-        HEADER_SEARCH_PATHS: "$(SRCROOT)/Sources/Features/Exploits/bad_query $(SRCROOT)/Sources/Features/Exploits/MobileHouseArrest"
 
 fileGroups:
   - Resources

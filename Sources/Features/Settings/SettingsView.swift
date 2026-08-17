@@ -21,9 +21,6 @@ struct SettingsView: View {
 					NavigationLink(destination: GeneralSettingsView()) {
 						NavigationLabel(text: "General", icon: "gear")
 					}
-					NavigationLink(destination: ExploitsSettingsView()) {
-						NavigationLabel(text: "Exploits", icon: "wrench.and.screwdriver")
-					}
 					NavigationLink(destination: SecuritySettingsView()) {
 						NavigationLabel(text: "Security", icon: "lock")
 					}

@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: latest-macos
 
     steps:
       - name: Checkout
@@ -46,8 +46,23 @@ jobs:
           zip -qr Filzer.ipa Payload
           rm -rf Payload
 
+      - name: Package TIPA (TrollStore)
+        run: |
+          app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
+          ldid -Sresources/Filzer.entitlements "$app_path/Filzer"
+          mkdir Payload-TS
+          cp -r "$app_path" Payload-TS/
+          cd Payload-TS && zip -qr ../Filzer.tipa . && cd ..
+          rm -rf Payload-TS
+
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: Filzer-unsigned-ipa
           path: Filzer.ipa
+
+      - name: Upload TIPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Filzer-trollstore-tipa
+          path: Filzer.tipa
