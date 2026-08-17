@@ -16,6 +16,19 @@ struct PlistNodeRow: View {
 
 	var body: some View {
 		rowContent
+			.swipeActions(edge: .trailing) {
+				if let onDelete {
+					Button(role: .destructive, action: onDelete) {
+						Label("Delete", systemImage: "trash")
+					}
+				}
+				if let onRename {
+					Button(action: onRename) {
+						Label("Rename", systemImage: "pencil")
+					}
+					.tint(.orange)
+				}
+			}
 			.contextMenu { contextMenuItems }
 			.confirmationDialog("Change Type", isPresented: $showingTypePicker, titleVisibility: .visible) {
 				ForEach(PlistNode.Kind.allCases) { kind in
