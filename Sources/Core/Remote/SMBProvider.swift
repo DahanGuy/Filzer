@@ -1,9 +1,6 @@
 import AMSMB2
 import Foundation
 
-/// SMB2/3 client backed by AMSMB2 (a Swift wrapper around libsmb2). An `actor` so the
-/// lazily-created, share-connected `SMB2Manager` can't be raced into connecting twice
-/// by concurrent calls into the same provider.
 actor SMBProvider: RemoteFileProvider {
 	enum SMBProviderError: LocalizedError {
 		case invalidHost
@@ -19,11 +16,6 @@ actor SMBProvider: RemoteFileProvider {
 
 	private let connection: RemoteConnection
 	private let password: String
-	/// `RemoteConnection.basePath` for SMB is `"ShareName/optional/path"` — the share
-	/// name is therefore the first component of every full path this provider is ever
-	/// given (baked in by `RemoteURL` construction), resolved once here and stripped
-	/// before talking to AMSMB2, which addresses files relative to the connected
-	/// share's own root.
 	private let shareName: String
 	private var manager: SMB2Manager?
 
@@ -65,19 +57,10 @@ actor SMBProvider: RemoteFileProvider {
 		try await manager.removeItem(atPath: sharePath(for: path))
 	}
 
-	/// Overrides the default read+write fallback — SMB2 rename is a real native verb
-	/// and (unlike the default) works correctly on directories too.
 	func move(from source: String, to destination: String) async throws {
 		let manager = try await connectedManager()
 		try await manager.moveItem(atPath: sharePath(for: source), toPath: sharePath(for: destination))
 	}
-
-	// `copy` is left on the protocol's default (read+write) — `SandboxedFileSystemEngine`
-	// never calls it directly (it always does its own recursive tree-walk for copies so
-	// folder copies work uniformly across every provider), so there's nothing to gain
-	// from AMSMB2's server-side `copyItem` here.
-
-	// MARK: - Connection
 
 	private func connectedManager() async throws -> SMB2Manager {
 		if let manager { return manager }
@@ -95,8 +78,6 @@ actor SMBProvider: RemoteFileProvider {
 		return newManager
 	}
 
-	/// Strips this connection's fixed `/ShareName` prefix off a full path, leaving the
-	/// share-relative path AMSMB2 expects. The share's own root is `"/"`.
 	private func sharePath(for fullPath: String) -> String {
 		let prefix = "/\(shareName)"
 		guard fullPath.hasPrefix(prefix) else { return fullPath.isEmpty ? "/" : fullPath }

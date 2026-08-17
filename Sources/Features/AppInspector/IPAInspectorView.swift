@@ -1,9 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Read-only inspector for `.ipa` app archives — icon, identity, and version at a
-/// glance, plus a link into `ArchiveBrowserView` to browse the raw contents. There is
-/// no install action anywhere on this screen, by design.
 struct IPAInspectorView: View {
 	let url: URL
 

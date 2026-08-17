@@ -1,10 +1,5 @@
 import Foundation
 
-/// A WebDAV (RFC 4918, obsoletes RFC 2518) client built directly on
-/// `URLSession`/`URLRequest` — no third-party dependency. Every method issues one
-/// WebDAV HTTP request (PROPFIND/GET/PUT/MKCOL/DELETE/MOVE/COPY) and maps the response
-/// to `RemoteFileProvider`'s vocabulary. Stateless per request (HTTP Basic auth is sent
-/// on every call), so unlike a stateful protocol this needs no internal serialization.
 struct WebDAVProvider: RemoteFileProvider {
 	enum WebDAVError: LocalizedError {
 		case invalidURL(String)
@@ -23,8 +18,6 @@ struct WebDAVProvider: RemoteFileProvider {
 		}
 	}
 
-	/// The literal PROPFIND request body — asks for exactly the props `listDirectory`
-	/// needs, nothing more.
 	private static let propfindBody = Data("""
 	<?xml version="1.0" encoding="utf-8"?>
 	<D:propfind xmlns:D="DAV:"><D:prop><D:resourcetype/><D:getcontentlength/><D:getlastmodified/></D:prop></D:propfind>
@@ -41,8 +34,6 @@ struct WebDAVProvider: RemoteFileProvider {
 		configuration.timeoutIntervalForRequest = 30
 		self.session = URLSession(configuration: configuration)
 	}
-
-	// MARK: - RemoteFileProvider
 
 	func listDirectory(at path: String) async throws -> [RemoteItem] {
 		var request = try makeRequest(method: "PROPFIND", path: path)
@@ -85,17 +76,11 @@ struct WebDAVProvider: RemoteFileProvider {
 
 	func createDirectory(at path: String) async throws {
 		let request = try makeRequest(method: "MKCOL", path: path)
-		// RFC 4918 §9.3.1: MKCOL succeeds with 201 Created only. A 405 (Method Not
-		// Allowed) most commonly means the collection already exists — a genuine
-		// conflict the caller should see, not something to swallow here.
 		_ = try await perform(request, successStatuses: [201], context: "creating directory \"\(path)\"")
 	}
 
 	func delete(at path: String) async throws {
 		let request = try makeRequest(method: "DELETE", path: path)
-		// 207 Multi-Status can occur for a collection delete with partial per-item
-		// failures; treated as success here rather than inspecting the multi-status
-		// body for individual failures.
 		_ = try await perform(request, successStatuses: Self.anySuccess.union([207]), context: "deleting \"\(path)\"")
 	}
 
@@ -106,8 +91,6 @@ struct WebDAVProvider: RemoteFileProvider {
 	func copy(from source: String, to destination: String) async throws {
 		try await copyOrMove(method: "COPY", from: source, to: destination)
 	}
-
-	// MARK: - Request building
 
 	private static let anySuccess: Set<Int> = Set(200...299)
 
@@ -136,10 +119,6 @@ struct WebDAVProvider: RemoteFileProvider {
 		return request
 	}
 
-	/// WebDAV COPY/MOVE share everything but the HTTP method: a `Destination` header
-	/// carrying the *full* destination URL (RFC 4918 §9.9.3/§9.8.3 require an absolute
-	/// URI, not just a path) plus `Overwrite: T`. 201 (created) and 204 (overwrote an
-	/// existing resource) both count as success.
 	private func copyOrMove(method: String, from source: String, to destination: String) async throws {
 		var request = try makeRequest(method: method, path: source)
 		request.setValue(try url(for: destination).absoluteString, forHTTPHeaderField: "Destination")
@@ -163,9 +142,6 @@ struct WebDAVProvider: RemoteFileProvider {
 		return (data, httpResponse)
 	}
 
-	/// Normalizes an href/path for comparison and display: strips scheme+host if the
-	/// server returned an absolute URL instead of a path-only href, URL-decodes it, and
-	/// drops a trailing slash (WebDAV collections are conventionally returned with one).
 	private static func normalizedPath(_ raw: String) -> String {
 		var rawPath = raw
 		if let schemeRange = raw.range(of: "://"), let hostEnd = raw[schemeRange.upperBound...].firstIndex(of: "/") {
@@ -178,11 +154,6 @@ struct WebDAVProvider: RemoteFileProvider {
 		return decoded
 	}
 
-	// MARK: - PROPFIND response parsing
-
-	/// Parses a PROPFIND multi-status XML body into one entry per `<D:response>`.
-	/// Matches elements by local name only (stripping any namespace prefix) since
-	/// real-world servers vary between `D:`, `d:`, and no prefix at all.
 	private final class PropfindResponseParser: NSObject, XMLParserDelegate {
 		struct Entry {
 			var href = ""

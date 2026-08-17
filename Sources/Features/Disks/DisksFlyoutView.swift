@@ -2,14 +2,7 @@ import PartyUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The Disks flyout — storage-capacity readout, every top-level browsable root (the
-/// app's own container, plus any externally-picked "Added Folders" or configured
-/// WebDAV/FTP/SMB/cloud network locations). The "+" menu covers both ways of adding a
-/// new root: a document-picker folder grant, or a network/cloud connection.
 struct DisksFlyoutView: View {
-	/// Called when a row is tapped, instead of pushing it inside this flyout's own
-	/// navigation stack — the presenter dismisses this popover and opens the location
-	/// in its own (main) screen.
 	let onNavigate: (URL, String?) -> Void
 
 	@Environment(\.dismiss) private var dismiss
@@ -21,9 +14,6 @@ struct DisksFlyoutView: View {
 	@State private var showingAddRemote = false
 	@State private var errorMessage: String?
 
-	/// Externally-picked folders — a `BookmarkEntry` carrying a security-scoped
-	/// bookmark, added via the document picker (plain typed-path bookmarks live in the
-	/// Bookmarks flyout instead; see `BookmarksFlyoutView.plainEntries`).
 	private var addedFolders: [BookmarkEntry] {
 		bookmarks.entries.filter { $0.securityScopedBookmarkData != nil }
 	}
@@ -140,8 +130,6 @@ struct DisksFlyoutView: View {
 		return CGFloat(Double(info.usedCapacity) / Double(info.totalCapacity))
 	}
 
-	/// Red once storage is almost full, matching the "low space" warning color every
-	/// other iOS storage gauge uses.
 	private func barColor(for info: VolumeInfo) -> Color {
 		usedFraction(info) >= 0.9 ? .red : .accentColor
 	}
@@ -154,9 +142,6 @@ struct DisksFlyoutView: View {
 		}
 	}
 
-	/// "Add Folder" — Filza's term for pinning a folder the app has no innate access
-	/// to. The document picker grants a one-time security-scoped grant; the bookmark
-	/// data persisted here is what makes that grant durable across launches.
 	private func addFolder(result: Result<URL, Error>) async {
 		do {
 			let url = try result.get()

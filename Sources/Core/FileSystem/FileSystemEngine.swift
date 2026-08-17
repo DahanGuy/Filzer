@@ -5,5 +5,5 @@ protocol FileSystemEngine {
 }
 
 enum FileSystem {
-	static var current: FileSystemEngine = SandboxedFileSystemEngine()
+	static var current: FileSystemEngine = MainFileSystemEngine()
 }

@@ -1,8 +1,6 @@
 import Foundation
 import ZIPFoundation
 
-/// The only file in Filzer that imports ZIPFoundation. `SandboxedFileSystemEngine`
-/// only ever sees the `ArchiveService` protocol.
 struct ZIPFoundationArchiveService: ArchiveService {
 	func compress(_ urls: [URL], to destination: URL) throws {
 		guard !urls.isEmpty else {
@@ -44,8 +42,6 @@ struct ZIPFoundationArchiveService: ArchiveService {
 		_ = try archive.extract(entry, to: destination)
 	}
 
-	/// Adds `url` (file, directory, or symlink) under `path`, recursing into directories
-	/// one level of `addEntry` at a time — `Archive` has no built-in recursive add.
 	private func addEntryRecursively(at url: URL, path: String, to archive: Archive) throws {
 		let fileManager = FileManager.default
 		var isDirectory: ObjCBool = false

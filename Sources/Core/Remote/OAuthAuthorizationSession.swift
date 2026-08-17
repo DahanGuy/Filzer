@@ -2,10 +2,6 @@ import AuthenticationServices
 import Foundation
 import UIKit
 
-/// Runs one interactive OAuth 2.0 authorization-code+PKCE round trip via
-/// `ASWebAuthenticationSession` — the user signs in through the provider's own web
-/// page (Dropbox/Google/Microsoft), never inside a UIWebView Filzer controls, so
-/// their password is never visible to this app.
 @MainActor
 final class OAuthAuthorizationSession: NSObject, ASWebAuthenticationPresentationContextProviding {
 	enum AuthError: LocalizedError {
@@ -24,9 +20,6 @@ final class OAuthAuthorizationSession: NSObject, ASWebAuthenticationPresentation
 
 	private var session: ASWebAuthenticationSession?
 
-	/// Presents the authorization page at `url` and waits for the redirect back to
-	/// `callbackScheme`, returning the full callback URL (the caller extracts
-	/// whatever query parameters its provider returns, typically `code`).
 	func authorize(url: URL, callbackScheme: String) async throws -> URL {
 		try await withCheckedThrowingContinuation { continuation in
 			let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { callbackURL, error in
@@ -56,7 +49,6 @@ final class OAuthAuthorizationSession: NSObject, ASWebAuthenticationPresentation
 	}
 }
 
-/// Extracts a single query-parameter value from an OAuth redirect URL.
 extension URL {
 	func oauthQueryValue(_ name: String) -> String? {
 		URLComponents(url: self, resolvingAgainstBaseURL: false)?

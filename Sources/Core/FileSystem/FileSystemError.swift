@@ -1,7 +1,5 @@
 import Foundation
 
-/// Errors surfaced by `FileSystemEngine` implementations and shown directly in the UI,
-/// so every case carries a human-readable description.
 enum FileSystemError: LocalizedError {
 	case notFound(URL)
 	case alreadyExists(URL)
@@ -11,13 +9,7 @@ enum FileSystemError: LocalizedError {
 	case operationFailed(String)
 	case cancelled
 	case unsupported(String)
-	/// Thrown by `ArchiveService.listEntries`/`extract`/`extractEntry` when an archive
-	/// needs a password that's missing or wrong - the one `FileSystemError` case the UI
-	/// (`ArchiveBrowserView`) specifically catches to prompt for a password and retry,
-	/// rather than just surfacing it as a dead-end failure.
 	case archivePasswordRequired(URL)
-	/// An engine returned a result shape that doesn't match the operation it was asked
-	/// to perform — always a bug in that `FileSystemEngine`, never a user-facing failure.
 	case unexpectedResult
 
 	var errorDescription: String? {

@@ -10,12 +10,6 @@ extension AppTheme {
 	}
 }
 
-/// The app's only top-level screen: a single file browser rooted at "/" — a real
-/// filesystem path, not limited to Filzer's own container. Disks and Bookmarks are
-/// how you get to other locations, both reachable from this screen's toolbar.
-///
-/// The biometric lock itself isn't presented here — see `AppLockGate`, which shows
-/// its own top-level `UIWindow` rather than a SwiftUI `.fullScreenCover`.
 struct RootBrowserShell: View {
 	@EnvironmentObject private var settings: SettingsStore
 	@StateObject private var lockGate = AppLockGate()

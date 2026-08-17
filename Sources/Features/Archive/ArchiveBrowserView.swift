@@ -1,14 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Filza's "Zip Viewer", generalized to every format `ArchiveFormat` recognizes
-/// (zip/rar/tar/gzip/bzip2/xz/7z) — browses an archive's contents as a virtual folder
-/// tree without extracting the whole thing to disk. This is just the root-level entry
-/// point `FileViewerRoute` pushes to; the actual browsing happens in
-/// `ArchiveBrowserLevelView`, which recurses into itself as the user drills into
-/// nested folders. `password` is hoisted here (not local to each level) and passed
-/// down as a binding so unlocking a password-protected RAR once, at any depth, covers
-/// every level of the same archive instead of re-prompting per folder.
 struct ArchiveBrowserView: View {
 	let url: URL
 
@@ -19,10 +11,6 @@ struct ArchiveBrowserView: View {
 	}
 }
 
-/// One level of an archive's virtual folder tree: everything whose path sits directly
-/// under `prefix`. Files are only ever pulled out of the archive (to a scratch temp
-/// directory) when the user taps one; folders just recurse into another level of this
-/// same view with a deeper `prefix`.
 struct ArchiveBrowserLevelView: View {
 	let archiveURL: URL
 	let prefix: String
@@ -86,8 +74,6 @@ struct ArchiveBrowserLevelView: View {
 		)
 	}
 
-	// MARK: - Row rendering
-
 	@ViewBuilder
 	private func rowContent(for row: ArchiveRow) -> some View {
 		if row.entry.isDirectory {
@@ -112,8 +98,6 @@ struct ArchiveBrowserLevelView: View {
 		}
 	}
 
-	// MARK: - Programmatic navigation to an extracted file
-
 	@ViewBuilder
 	private var pendingNodeDestination: some View {
 		if let pendingNode {
@@ -127,10 +111,6 @@ struct ArchiveBrowserLevelView: View {
 		Binding(get: { pendingNode != nil }, set: { if !$0 { pendingNode = nil } })
 	}
 
-	// MARK: - Loading and extraction
-
-	/// Routes a failure to the password prompt (retrying the same operation once one's
-	/// supplied) when the archive needs one, or to the plain error alert otherwise.
 	private func handleArchiveError(_ error: Error, retry: @escaping () -> Void) {
 		if case FileSystemError.archivePasswordRequired = error {
 			passwordInput = password ?? ""
@@ -151,8 +131,6 @@ struct ArchiveBrowserLevelView: View {
 		isLoading = false
 	}
 
-	/// Extracts a single entry into an isolated scratch directory (so same-named files
-	/// from different zips never collide) and previews the result.
 	private func extract(_ entry: ArchiveEntry) {
 		extractingEntryID = entry.id
 		Task {
@@ -169,8 +147,6 @@ struct ArchiveBrowserLevelView: View {
 		}
 	}
 
-	/// Extracts the whole archive into a sibling folder named after it (minus its
-	/// extension(s)), e.g. `archive.tar.gz` -> `archive/`.
 	private func extractAll() {
 		isExtractingAll = true
 		Task {
@@ -187,9 +163,6 @@ struct ArchiveBrowserLevelView: View {
 	}
 }
 
-/// A single row inside the zip's virtual tree — a folder or file that still lives
-/// inside the archive, so it's rendered from an `ArchiveEntry` rather than `FileRow`
-/// (which requires a real on-disk `FileNode`).
 private struct ArchiveRowView: View {
 	let entry: ArchiveEntry
 

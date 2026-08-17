@@ -1,9 +1,5 @@
 import Foundation
 
-/// Ergonomic, typed wrappers around `execute(_:)`. Every method here does nothing but
-/// build a `FileOperation`, await `execute(_:)`, and unwrap the expected
-/// `FileOperationResult` case — the single chokepoint stays `execute(_:)` itself.
-/// UI code should only ever call the methods below, never `execute(_:)` directly.
 extension FileSystemEngine {
 	func listDirectory(at url: URL, includeHidden: Bool = false) async throws -> [FileNode] {
 		try await expectNodes(.listDirectory(url, includeHidden: includeHidden))
@@ -76,7 +72,6 @@ extension FileSystemEngine {
 		try await expectSize(.calculateSize(url))
 	}
 
-	/// Zips `urls` (files and/or folders) into a new archive at `destination`.
 	func compressItems(_ urls: [URL], to destination: URL) async throws {
 		try await expectDone(.compressItems(urls, to: destination))
 	}
@@ -85,7 +80,6 @@ extension FileSystemEngine {
 		try await expectDone(.extractArchive(archive, toDirectory: destination, password: password))
 	}
 
-	/// Lists an archive's contents without extracting it to disk.
 	func listArchiveEntries(_ archive: URL, password: String? = nil) async throws -> [ArchiveEntry] {
 		try await expectArchiveEntries(.listArchiveEntries(archive, password: password))
 	}
@@ -102,12 +96,6 @@ extension FileSystemEngine {
 		try await expectVolume(.volumeInfo(url))
 	}
 
-	/// Ensures `url` is addressable as a real local `file://` URL, downloading remote
-	/// content to a temporary file first when needed. For any consumer that has to
-	/// bypass `FileSystemEngine` and hand a URL straight to a system framework (AVKit,
-	/// WKWebView, `sqlite3_open`, a third-party archive library) — see
-	/// `ViewerKind.requiresLocalFile`. The caller owns cleanup of the returned file
-	/// when `isTemporary` is true.
 	func materializeLocally(_ url: URL) async throws -> (url: URL, isTemporary: Bool) {
 		guard RemoteURL.isRemote(url) else { return (url, false) }
 		let data = try await readFile(at: url)
@@ -117,8 +105,6 @@ extension FileSystemEngine {
 		try data.write(to: localURL, options: .atomic)
 		return (localURL, true)
 	}
-
-	// MARK: - Result unwrapping
 
 	private func expectNodes(_ op: FileOperation) async throws -> [FileNode] {
 		guard case .nodes(let nodes) = try await execute(op) else { throw FileSystemError.unexpectedResult }

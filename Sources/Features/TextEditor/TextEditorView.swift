@@ -2,9 +2,6 @@ import SwiftUI
 import UIKit
 import PartyUI
 
-/// Plain-text file editor pushed from `FileViewerRoute`. Wraps `UITextView` directly
-/// instead of SwiftUI's `TextEditor` because Find/Next/Prev needs `selectedRange` and
-/// `scrollRangeToVisible`, neither of which `TextEditor` exposes at iOS 15.
 struct TextEditorView: View {
 	let url: URL
 
@@ -34,8 +31,6 @@ struct TextEditorView: View {
 		.errorAlert($errorMessage)
 		.task { await load() }
 	}
-
-	// MARK: - Layout
 
 	private var editor: some View {
 		VStack(spacing: 0) {
@@ -89,8 +84,6 @@ struct TextEditorView: View {
 		}
 	}
 
-	// MARK: - Loading / saving
-
 	private func load() async {
 		do {
 			let data = try await FileSystem.current.readFile(at: url)
@@ -123,10 +116,6 @@ struct TextEditorView: View {
 		}
 	}
 
-	// MARK: - Find
-
-	/// Counts case-insensitive, non-overlapping occurrences of `query` in `text` for
-	/// the find bar's match-count label.
 	private static func countMatches(of query: String, in text: String) -> Int {
 		let haystack = text as NSString
 		guard haystack.length > 0 else { return 0 }
@@ -151,8 +140,6 @@ struct TextEditorView: View {
 		performFind(forward: false)
 	}
 
-	/// Searches from the current selection, wrapping around the ends of the document,
-	/// then moves the caret and scrolls the match into view.
 	private func performFind(forward: Bool) {
 		guard !findQuery.isEmpty, let textView = textView else { return }
 		let haystack = text as NSString
@@ -181,11 +168,6 @@ struct TextEditorView: View {
 	}
 }
 
-// MARK: - UITextView bridge
-
-/// Bridges `UITextView` into SwiftUI. A plain SwiftUI `TextEditor` can't drive
-/// programmatic selection/scrolling, so Find/Next/Prev call directly into the
-/// underlying `UITextView` captured here.
 private struct TextViewRepresentable: UIViewRepresentable {
 	@Binding var text: String
 	@Binding var isDirty: Bool

@@ -2,8 +2,6 @@ import ImageIO
 import SwiftUI
 import UIKit
 
-/// A file/folder's row icon — an SF Symbol tinted by category, upgraded to a real
-/// downsized thumbnail for images once one loads.
 struct FileIconView: View {
 	let node: FileNode
 	var size: CGFloat = Theme.rowIconSize

@@ -2,9 +2,6 @@ import PartyUI
 import SwiftUI
 import UIKit
 
-/// Full-screen image viewer with pinch-to-zoom/pan and a bottom info strip. Reads
-/// bytes through `FileSystem.current` (never `UIImage(contentsOfFile:)`) so it works
-/// uniformly whether `url` lives in the sandbox or behind a security-scoped bookmark.
 struct ImageViewerView: View {
 	let url: URL
 
@@ -76,10 +73,6 @@ struct ImageViewerView: View {
 		}
 	}
 
-	// MARK: - Gestures
-
-	/// Magnification and drag are recognized together so a user can pinch-zoom and
-	/// pan in one continuous motion, matching Photos.app's viewer behavior.
 	private var zoomAndPanGesture: some Gesture {
 		MagnificationGesture()
 			.updating($pinchScale) { value, state, _ in state = value }
@@ -111,8 +104,6 @@ struct ImageViewerView: View {
 		}
 	}
 
-	// MARK: - Info strip
-
 	private var infoStrip: some View {
 		HStack {
 			if let dimensions {
@@ -129,8 +120,6 @@ struct ImageViewerView: View {
 		.padding(.vertical, 8)
 		.background(Color.black.opacity(0.6))
 	}
-
-	// MARK: - Loading
 
 	private func load() async {
 		dimensions = MediaMetadataReader.imageDimensions(at: url)

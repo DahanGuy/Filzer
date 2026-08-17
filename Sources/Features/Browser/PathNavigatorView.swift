@@ -1,12 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// "Go to Folder" — typing/pasting an absolute path directly, with live autosuggest
-/// for the folder name currently being typed. A dedicated sheet, deliberately
-/// separate from search: the previous design had one field try to be both a search
-/// box and a path box via a mode-toggle button, which meant every focus/keyboard/
-/// clear-button interaction had to be hand-rolled and re-hand-rolled to work
-/// correctly. This has its own small, independent state instead.
 struct PathNavigatorView: View {
 	let currentPath: String
 	let onNavigate: (URL, String?) -> Void
@@ -78,9 +72,6 @@ struct PathNavigatorView: View {
 		dismiss()
 	}
 
-	/// Lists the parent of whatever path is currently typed and keeps folders whose
-	/// name starts with the partial last segment — an inaccessible parent silently
-	/// yields no suggestions rather than surfacing an error popup.
 	private func scheduleSuggestions() {
 		suggestionsTask?.cancel()
 		let typed = path

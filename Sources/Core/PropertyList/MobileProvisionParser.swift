@@ -1,10 +1,5 @@
 import Foundation
 
-/// Parses `.mobileprovision` files for read-only display. These are a plist wrapped in
-/// a CMS (PKCS#7) signature envelope; Filzer never installs a profile or verifies a
-/// signature, so there's no reason to decode CMS. The plist is stored as plain ASCII
-/// text inside the binary envelope, so locating it by byte range is reliable and
-/// avoids pulling in a CMS/ASN.1 dependency for a single read-only viewer.
 enum MobileProvisionParser {
 	enum ParserError: LocalizedError {
 		case malformed
@@ -25,8 +20,6 @@ enum MobileProvisionParser {
 		let platforms: [String]
 		let provisionsAllDevices: Bool
 		let provisionedDeviceCount: Int?
-		/// Stringified for display only — entitlement values are a mix of bools,
-		/// strings, and arrays, and this viewer never needs to round-trip them.
 		let entitlements: [(key: String, value: String)]
 	}
 

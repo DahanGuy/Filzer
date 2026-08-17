@@ -1,24 +1,11 @@
 import SwiftUI
 
-/// The Recents flyout — every file opened through `FileViewerRoute`, most recent
-/// first (Filza's Recents section). A target that fails to resolve (deleted, or a
-/// security-scoped location whose grant didn't survive a relaunch) still shows its
-/// own row, marked inaccessible, instead of silently vanishing - the previous
-/// behavior left the list looking empty or broken even though entries existed.
 struct RecentsFlyoutView: View {
-	/// Called with a recent file's *containing folder* (never the file itself) when
-	/// its row is tapped - dismisses this popover and opens that folder in the
-	/// presenter's own stack, exactly like tapping a folder in Bookmarks/Disks does.
-	/// Landing in the folder the file lives in (with its siblings visible) is more
-	/// useful for "get back to what I was working on" than re-opening the same
-	/// viewer directly.
 	let onNavigate: (URL, String?) -> Void
 
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var recents: RecentsStore
 
-	/// Resolved node per entry, keyed by `RecentEntry.id`. An id present in
-	/// `failedIDs` instead means resolution finished but found nothing usable.
 	@State private var nodes: [UUID: FileNode] = [:]
 	@State private var failedIDs: Set<UUID> = []
 

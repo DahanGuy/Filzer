@@ -1,9 +1,5 @@
 import Foundation
 
-/// Dispatches to the right backend by archive format. Creation and extraction both
-/// route by whatever format `ArchiveFormat.detect` reads off the URL's name — the
-/// caller picks the format by choosing the destination's extension (see
-/// `FileBrowserViewModel.compress(_:format:)`), not by passing a separate parameter.
 struct CompositeArchiveService: ArchiveService {
 	private let zip = ZIPFoundationArchiveService()
 	private let swCompression = SWCompressionArchiveService()

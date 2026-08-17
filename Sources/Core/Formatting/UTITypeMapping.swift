@@ -1,7 +1,6 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// Coarse content classification used to pick an icon and a default viewer.
 enum FileCategory {
 	case folder
 	case symbolicLink
@@ -57,8 +56,6 @@ enum FileClassifier {
 		}
 	}
 
-	/// A stable string key for `FileAssociationsStore`, independent of `FileCategory`
-	/// so a user's per-extension override survives even if classification logic changes.
 	static func associationKey(for node: FileNode) -> String {
 		node.pathExtension.lowercased()
 	}

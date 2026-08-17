@@ -1,7 +1,5 @@
 import Foundation
 
-/// Shared byte-count formatting so every screen (rows, Info panel, storage usage)
-/// renders sizes identically.
 enum ByteCountFormat {
 	private static let formatter: ByteCountFormatter = {
 		let formatter = ByteCountFormatter()

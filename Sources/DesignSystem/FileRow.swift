@@ -1,12 +1,8 @@
 import SwiftUI
 
-/// The standard file/folder row used by the browser, bookmarks, search, trash, and the
-/// zip viewer. Selection UI is opt-in via `selection` so single-select contexts (e.g.
-/// Bookmarks) don't pay for it.
 struct FileRow: View {
 	let node: FileNode
 	var subtitleOverride: String?
-	/// Non-nil puts the row in multi-select mode with a leading checkmark.
 	var selection: Bool?
 
 	var body: some View {

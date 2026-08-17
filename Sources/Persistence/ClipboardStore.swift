@@ -17,9 +17,6 @@ struct ClipboardPayload: Equatable {
 
 extension ClipboardOperation: Equatable {}
 
-/// Filza's "Pasteboard": a queue of cut/copied items that stays visible (as a banner)
-/// until pasted or cleared. Session-only by design — URLs referencing files that may no
-/// longer exist shouldn't silently survive a relaunch.
 @MainActor
 final class ClipboardStore: ObservableObject {
 	@Published private(set) var payload: ClipboardPayload?

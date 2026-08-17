@@ -1,19 +1,10 @@
 import PartyUI
 import SwiftUI
 
-/// `Result`'s failure case must conform to `Error`; a plain `String` doesn't. This is
-/// the minimal wrapper shared by every throwaway-`SQLiteReader` call site in this
-/// feature (`SQLiteViewerView`, `SQLiteTableView`, `SQLiteQueryView`).
 struct SQLiteTaskError: Error {
 	let message: String
 }
 
-/// Landing screen for a `.sqlite` file. Lists the database's tables (tap one to page
-/// through its rows in `SQLiteTableView`) and exposes a persistent "Run SQL" entry point
-/// for free-form queries that aren't tied to any single table.
-///
-/// Pushed inside an existing `NavigationView` via `FileViewerRoute` — this view does
-/// **not** create its own `NavigationView`.
 struct SQLiteViewerView: View {
 	let url: URL
 
@@ -62,8 +53,6 @@ struct SQLiteViewerView: View {
 		.errorAlert($errorMessage)
 	}
 
-	/// Opens a throwaway `SQLiteReader` off the main thread to list tables — the reader's
-	/// C-API calls are blocking, so this never happens directly on the view body.
 	private func loadTableNames() async {
 		let dbURL = url
 		let outcome: Result<[String], SQLiteTaskError> = await Task.detached(priority: .userInitiated) {

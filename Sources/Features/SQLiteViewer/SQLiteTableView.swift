@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// Pages through a single table's rows using `SQLiteReader`, loading `pageSize` rows at a
-/// time as the user scrolls — fetching every row upfront would be wasteful (and slow) for
-/// large tables. Pushed from `SQLiteViewerView` when a table row is tapped.
 struct SQLiteTableView: View {
 	let url: URL
 	let table: String
@@ -41,8 +38,6 @@ struct SQLiteTableView: View {
 		.errorAlert($errorMessage)
 	}
 
-	// MARK: - Paging
-
 	private func loadInitialPage() async {
 		let dbURL = url
 		let tableName = table
@@ -70,8 +65,6 @@ struct SQLiteTableView: View {
 		}
 	}
 
-	/// Fires from the grid's last-cell `.onAppear` — the standard SwiftUI infinite-scroll
-	/// trigger. Guarded against overlapping loads and running past the known row count.
 	private func loadNextPageIfNeeded() {
 		guard !isLoadingNextPage, hasMoreRows, !isLoadingInitialPage else { return }
 		isLoadingNextPage = true
@@ -103,14 +96,9 @@ struct SQLiteTableView: View {
 	}
 }
 
-/// Shared horizontally- and vertically-scrollable "spreadsheet" rendering for a
-/// `SQLiteReader.QueryResult` — used by both this table pager and `SQLiteQueryView`'s
-/// free-form query results so cell/column styling stays identical.
 struct SQLiteResultGrid: View {
 	let columnNames: [String]
 	let rows: [[String?]]
-	/// Called when the last column of the last row appears on screen — the trigger point
-	/// for loading another page. Leave `nil` for one-shot results (a run query).
 	var onLastCellAppear: (() -> Void)?
 
 	private static let columnWidth: CGFloat = 140

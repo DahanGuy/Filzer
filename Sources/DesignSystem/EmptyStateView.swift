@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Filza-style empty states ("This folder is empty", "No recents", "No bookmarks", …).
 struct EmptyStateView: View {
 	let icon: String
 	let title: String

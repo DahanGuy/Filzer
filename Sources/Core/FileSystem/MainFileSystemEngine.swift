@@ -1,12 +1,6 @@
 import Foundation
 
-/// The default `FileSystemEngine`: local operations route through `FileManager`,
-/// scoped to whatever sandbox/security-scoped access the app currently holds; anything
-/// addressed by a `filzer-remote://` URL (see `RemoteURL`) routes instead to the
-/// matching `RemoteFileProvider` via `RemoteProviderRegistry`. This is the only type in
-/// the app that touches `FileManager` or a `RemoteFileProvider` directly — see
-/// `FileOperation` for why every call funnels through here, local or remote alike.
-final class SandboxedFileSystemEngine: FileSystemEngine {
+final class MainFileSystemEngine: FileSystemEngine {
 	private let archiveService: ArchiveService
 
 	init(archiveService: ArchiveService = CompositeArchiveService()) {
@@ -148,8 +142,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		}
 	}
 
-	// MARK: - Local/remote single-item primitives
-
 	private func readBytes(at url: URL) async throws -> Data {
 		guard RemoteURL.isRemote(url) else { return try Data(contentsOf: url) }
 		let (provider, path) = try await remoteProvider(for: url)
@@ -174,17 +166,11 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		try await provider.delete(at: path)
 	}
 
-	/// A single node's metadata, local or remote. Remote nodes are resolved by listing
-	/// the parent path and matching by name — there's no dedicated "stat" verb in
-	/// `RemoteFileProvider` since none of the three protocols make that meaningfully
-	/// cheaper than a directory listing.
 	private func resolveNode(at url: URL) async throws -> FileNode {
 		guard RemoteURL.isRemote(url) else { return try FileNode.make(at: url) }
 		let (provider, path) = try await remoteProvider(for: url)
 		let components = path.split(separator: "/", omittingEmptySubsequences: true)
 		guard components.count > 1 else {
-			// The connection's own root (WebDAV/FTP "/", or SMB's "/ShareName") has no
-			// listable parent within this connection.
 			return FileNode.remoteRoot(url: url)
 		}
 		let parentPath = "/" + components.dropLast().joined(separator: "/")
@@ -239,8 +225,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		try await provider.createDirectory(at: path)
 	}
 
-	// MARK: - Copy / move (local, remote, and cross-location)
-
 	private func copyOne(from source: URL, to destination: URL) async throws {
 		guard RemoteURL.isRemote(source) || RemoteURL.isRemote(destination) else {
 			try throwIfExists(destination)
@@ -273,9 +257,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 			try FileManager.default.moveItem(at: source, to: destination)
 			return
 		}
-		// Same-connection moves use the provider's own rename verb — a real rename,
-		// unlike the copy path above, works on directories in one round trip on every
-		// protocol this app supports.
 		if RemoteURL.isRemote(source), RemoteURL.isRemote(destination),
 			RemoteURL.connectionID(from: source) == RemoteURL.connectionID(from: destination)
 		{
@@ -287,8 +268,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		try await copyOne(from: source, to: destination)
 		try await deleteOne(source)
 	}
-
-	// MARK: - Archives (materializes remote content to a local temp file/tree as needed)
 
 	private func compressItems(_ urls: [URL], to destination: URL) async throws {
 		let hasRemoteSource = urls.contains { RemoteURL.isRemote($0) }
@@ -346,7 +325,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		}
 	}
 
-	/// Downloads a remote file or directory tree into a real local location.
 	private func downloadToLocalTree(from url: URL, into localDestination: URL) async throws {
 		if try await resolveNode(at: url).isDirectory {
 			try FileManager.default.createDirectory(at: localDestination, withIntermediateDirectories: true)
@@ -358,7 +336,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		}
 	}
 
-	/// Uploads a real local file or directory tree to a (possibly remote) destination.
 	private func uploadLocalTree(from localSource: URL, to destination: URL) async throws {
 		var isDirectory: ObjCBool = false
 		guard FileManager.default.fileExists(atPath: localSource.path, isDirectory: &isDirectory) else { return }
@@ -376,8 +353,6 @@ final class SandboxedFileSystemEngine: FileSystemEngine {
 		try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 		try data.write(to: url, options: .atomic)
 	}
-
-	// MARK: - Local-only helpers
 
 	private func throwIfExists(_ url: URL) throws {
 		if FileManager.default.fileExists(atPath: url.path) {

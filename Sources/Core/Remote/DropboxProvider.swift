@@ -1,8 +1,5 @@
 import Foundation
 
-/// Dropbox client via the Files API v2 + OAuth 2.0 authorization-code+PKCE. Dropbox
-/// addresses everything by plain path string, same as WebDAV/FTP, so this is the
-/// simplest of the three cloud providers — no ID-graph translation needed.
 struct DropboxProvider: RemoteFileProvider {
 	enum DropboxError: LocalizedError {
 		case httpStatus(Int, String)
@@ -16,9 +13,6 @@ struct DropboxProvider: RemoteFileProvider {
 		}
 	}
 
-	/// Filzer's own custom URL scheme registered in Info.plist for this provider's
-	/// OAuth redirect — Dropbox itself imposes no required scheme format (unlike
-	/// Google/Microsoft below), so this is an arbitrary but fixed choice.
 	static let redirectURI = "com.guy.filzer.dropbox://oauth/callback"
 
 	static let endpoints = OAuthEndpoints(
@@ -67,15 +61,10 @@ struct DropboxProvider: RemoteFileProvider {
 		_ = try await rpc("delete_v2", body: ["path": path])
 	}
 
-	/// Overrides the default read+write fallback — Dropbox's move is a real
-	/// server-side rename that works on folders too.
 	func move(from source: String, to destination: String) async throws {
 		_ = try await rpc("move_v2", body: ["from_path": source, "to_path": destination, "autorename": false])
 	}
 
-	// MARK: - Transport
-
-	/// "RPC style" calls (list/create/delete/move) — JSON in, JSON out.
 	private func rpc(_ route: String, body: [String: Any]) async throws -> [String: Any] {
 		var request = URLRequest(url: URL(string: "https://api.dropboxapi.com/2/files/\(route)")!)
 		request.httpMethod = "POST"
@@ -88,8 +77,6 @@ struct DropboxProvider: RemoteFileProvider {
 		return json
 	}
 
-	/// "Content style" calls (download/upload) — the JSON arg travels in a header,
-	/// raw bytes are the body (upload) or response (download).
 	@discardableResult
 	private func content(route: String, arg: [String: Any], body: Data?) async throws -> Data {
 		var request = URLRequest(url: URL(string: "https://content.dropboxapi.com/2/files/\(route)")!)
@@ -114,8 +101,6 @@ struct DropboxProvider: RemoteFileProvider {
 		return data
 	}
 
-	/// The `Dropbox-API-Arg` header value must be ASCII-safe — escape anything
-	/// outside 0x20-0x7E as `\uXXXX` rather than sending raw UTF-8/emoji in a header.
 	private static func asciiEscaped(_ jsonData: Data) -> String {
 		let text = String(decoding: jsonData, as: UTF8.self)
 		var result = ""

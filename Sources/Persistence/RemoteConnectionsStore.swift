@@ -1,8 +1,6 @@
 import Combine
 import Foundation
 
-/// Configured WebDAV/FTP/SMB connections — shown in the Disks flyout alongside local
-/// storage. Credentials live in the Keychain, never in this store's persisted JSON.
 @MainActor
 final class RemoteConnectionsStore: ObservableObject {
 	@Published private(set) var connections: [RemoteConnection] = []

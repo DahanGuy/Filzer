@@ -1,7 +1,5 @@
 import Foundation
 
-/// A single key/value entry in a `.dictionary` node. A struct (not a tuple) so
-/// `PlistEditorView`'s `List` can diff and animate individual rows by `id`.
 struct PlistDictionaryEntry: Equatable, Identifiable {
 	let id: UUID
 	var key: String
@@ -14,7 +12,6 @@ struct PlistDictionaryEntry: Equatable, Identifiable {
 	}
 }
 
-/// A single entry in an `.array` node, wrapped for stable `List` identity across reorders.
 struct PlistArrayEntry: Equatable, Identifiable {
 	let id: UUID
 	var value: PlistNode
@@ -25,9 +22,6 @@ struct PlistArrayEntry: Equatable, Identifiable {
 	}
 }
 
-/// An in-memory property-list value tree. Filza's Property List Editor treats XML and
-/// binary plists identically once parsed — so does this type; the on-disk format is
-/// only a detail of `PlistCodec`.
 enum PlistNode: Equatable {
 	case string(String)
 	case number(Double)
@@ -37,8 +31,6 @@ enum PlistNode: Equatable {
 	case array([PlistArrayEntry])
 	case dictionary([PlistDictionaryEntry])
 
-	/// The case name shown in the "Change Type" picker, and used to build a sensible
-	/// default value when the user switches a node to this type.
 	enum Kind: String, CaseIterable, Identifiable {
 		case string, number, boolean, date, data, array, dictionary
 		var id: String { rawValue }
@@ -69,7 +61,6 @@ enum PlistNode: Equatable {
 		}
 	}
 
-	/// A short, single-line description used as a row's trailing value/subtitle.
 	var previewText: String {
 		switch self {
 		case .string(let value): return value

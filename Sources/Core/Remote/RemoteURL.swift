@@ -1,11 +1,5 @@
 import Foundation
 
-/// A local, synthetic URL scheme used to address remote items uniformly through
-/// `FileSystem.current` — `filzer-remote://<connection-uuid>/<remote-path>`.
-/// `SandboxedFileSystemEngine` recognizes this scheme and routes the operation to the
-/// matching `RemoteFileProvider` instead of touching `FileManager`; every other type in
-/// the app (views, `FileNode`, viewers reading through the engine) never needs to know
-/// the difference.
 enum RemoteURL {
 	static let scheme = "filzer-remote"
 

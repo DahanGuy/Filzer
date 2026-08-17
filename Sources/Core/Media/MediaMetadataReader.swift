@@ -3,8 +3,6 @@ import CoreGraphics
 import CoreMedia
 import ImageIO
 
-/// Metadata surfaced in the Info panel for images, audio, and video — the sandboxed
-/// equivalent of Filza's `Dimension` / `Resolution` / `Length` / `Sample rate` fields.
 struct MediaMetadata {
 	var duration: TimeInterval?
 	var videoDimensions: CGSize?
@@ -24,8 +22,6 @@ enum MediaMetadataReader {
 		return CGSize(width: width, height: height)
 	}
 
-	/// Uses the pre-iOS-16 `loadValuesAsynchronously` API deliberately, since it's the
-	/// one asynchronous-loading surface guaranteed available at Filzer's iOS 15 minimum.
 	static func mediaMetadata(at url: URL) async -> MediaMetadata {
 		let asset = AVURLAsset(url: url)
 		let keys = ["duration", "tracks"]

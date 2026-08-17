@@ -1,15 +1,10 @@
 import PartyUI
 import SwiftUI
 
-/// One row in the plist outline — a `DisclosureGroup` for `.dictionary`/`.array` nodes,
-/// or a type-appropriate inline editor for leaf values. Recurses through `Binding`s so
-/// an edit anywhere in the tree propagates all the way back to `PlistEditorView`'s root.
 struct PlistNodeRow: View {
 	@Binding var node: PlistNode
 	var title: String
-	/// `nil` for array items and the root, which aren't independently renameable.
 	var onRename: (() -> Void)?
-	/// `nil` for the root, which can't delete itself.
 	var onDelete: (() -> Void)?
 
 	@State private var showingTypePicker = false
@@ -137,8 +132,6 @@ struct PlistNodeRow: View {
 		}
 	}
 
-	// MARK: - Dictionary children
-
 	@ViewBuilder
 	private var dictionaryChildren: some View {
 		if case .dictionary(let entries) = node {
@@ -193,8 +186,6 @@ struct PlistNodeRow: View {
 			node = .dictionary(entries)
 		}
 	}
-
-	// MARK: - Array children
 
 	@ViewBuilder
 	private var arrayChildren: some View {

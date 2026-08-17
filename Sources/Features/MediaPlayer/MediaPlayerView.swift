@@ -2,9 +2,6 @@ import AVKit
 import PartyUI
 import SwiftUI
 
-/// Audio/video playback via `AVPlayer` + `VideoPlayer`. Used for both media kinds —
-/// for audio files `VideoPlayer` simply renders its transport chrome over a blank
-/// area, which is acceptable since Filzer has no dedicated audio-only UI.
 struct MediaPlayerView: View {
 	let url: URL
 

@@ -1,10 +1,6 @@
 import Foundation
 import SwiftUI
 
-/// Filza's Property List Editor: opens binary or XML plists (transparently, via
-/// `PlistCodec`) as a navigable outline. The root itself is rendered as an ordinary
-/// `PlistNodeRow` labeled with the file's name, so dictionary/array editing logic never
-/// has to be duplicated between "the root" and "a nested node."
 struct PlistEditorView: View {
 	let url: URL
 

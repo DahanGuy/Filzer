@@ -1,12 +1,6 @@
 import Foundation
 import SWCompression
 
-/// TAR/TAR.GZ/TAR.BZ2 creation, plus extraction for those and every other format
-/// SWCompression can read (GZip, BZip2, XZ, 7-Zip as single-stream/read-only).
-/// Everything here is Data-in/Data-out (SWCompression has no streaming API besides
-/// plain TAR, and combined formats like tar.gz still fully materialize both the
-/// compressed and decompressed bytes) — fine for the file sizes a mobile file manager
-/// typically opens, not suited to multi-gigabyte archives.
 struct SWCompressionArchiveService: ArchiveService {
 	private struct RawEntry {
 		let name: String
@@ -15,9 +9,6 @@ struct SWCompressionArchiveService: ArchiveService {
 		let data: Data?
 	}
 
-	/// TAR itself supports multiple entries natively; TAR.GZ/TAR.BZ2 are just a TAR
-	/// stream piped through a single-file compressor afterward — SWCompression has no
-	/// combined writer for those, so the two steps happen explicitly here.
 	func compress(_ urls: [URL], to destination: URL) throws {
 		guard !urls.isEmpty else {
 			throw FileSystemError.operationFailed("Nothing selected to compress.")
@@ -39,8 +30,6 @@ struct SWCompressionArchiveService: ArchiveService {
 		}
 	}
 
-	/// Builds `TarEntry` values for `url` (file or directory) under `name`, recursing
-	/// into directories — mirrors `ZIPFoundationArchiveService`'s own recursive add.
 	private func tarEntries(at url: URL, name: String) throws -> [TarEntry] {
 		let fm = FileManager.default
 		var isDirectory: ObjCBool = false
@@ -89,7 +78,6 @@ struct SWCompressionArchiveService: ArchiveService {
 		try (entry.data ?? Data()).write(to: destination)
 	}
 
-	/// Loads every entry (with data) for `archive`, decoding by format.
 	private func rawEntries(of archive: URL) throws -> [RawEntry] {
 		let raw = try Data(contentsOf: archive)
 		switch ArchiveFormat.detect(from: archive) {

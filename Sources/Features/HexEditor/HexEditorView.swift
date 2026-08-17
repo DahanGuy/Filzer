@@ -1,18 +1,9 @@
 import SwiftUI
 import PartyUI
 
-/// Raw byte-level file viewer/editor pushed from `FileViewerRoute`. Renders
-/// `HexFormatting.rows(for:)` in a `List` with per-byte tap targets for single-byte
-/// overwrites, plus Go To / Find toolbar actions.
-///
-/// Note: SwiftUI's `.alert(isPresented:actions:)` silently drops `TextField`s from its
-/// `actions` closure at iOS 15 (that only works from iOS 16 onward), so offset/byte
-/// prompts use PartyUI's `Alertinator.shared.prompt`, which is backed by
-/// `UIAlertController` and works correctly at iOS 15.
 struct HexEditorView: View {
 	let url: URL
 
-	/// Above this size, editing is disabled but the file is still rendered read-only.
 	private static let largeFileThreshold = 32_000_000
 
 	@State private var editableData = Data()
@@ -46,8 +37,6 @@ struct HexEditorView: View {
 		.errorAlert($errorMessage)
 		.task { await load() }
 	}
-
-	// MARK: - Layout
 
 	private var content: some View {
 		VStack(spacing: 0) {
@@ -118,13 +107,9 @@ struct HexEditorView: View {
 		return start..<(start + max(searchPatternLength, 1))
 	}
 
-	// MARK: - Loading / saving
-
 	private func load() async {
 		do {
 			let data = try await FileSystem.current.readFile(at: url)
-			// Row construction is O(fileSize) and can involve millions of rows for
-			// large files — compute it off the main actor so the load doesn't hitch.
 			let computedRows = await Task.detached(priority: .userInitiated) {
 				HexFormatting.rows(for: data)
 			}.value
@@ -147,8 +132,6 @@ struct HexEditorView: View {
 			}
 		}
 	}
-
-	// MARK: - Go To
 
 	private func presentGoTo() {
 		Alertinator.shared.prompt(title: "Go To Offset", placeholder: "0x1A2B or decimal") { text in
@@ -178,10 +161,6 @@ struct HexEditorView: View {
 		}
 	}
 
-	// MARK: - Find
-
-	/// Runs (or re-runs) the byte search for the current query and jumps to the first
-	/// match. Next/Prev reuse the cached result instead of re-searching every tap.
 	private func search() {
 		guard !findQuery.isEmpty else {
 			searchMatches = []
@@ -200,8 +179,6 @@ struct HexEditorView: View {
 		}
 	}
 
-	/// Interprets the find query as space-separated hex bytes first (e.g. "DE AD BE
-	/// EF"); falls back to raw ASCII/UTF-8 bytes so plain-text searches also work.
 	private static func searchPattern(for query: String) -> [UInt8] {
 		if let hexBytes = HexFormatting.bytes(fromHexString: query), !hexBytes.isEmpty {
 			return hexBytes
@@ -238,8 +215,6 @@ struct HexEditorView: View {
 		scrollToRow(containing: searchMatches[currentMatchIndex])
 	}
 
-	// MARK: - Byte editing
-
 	private func beginByteEdit(offset: Int, byte: UInt8) {
 		guard !isReadOnly else { return }
 		let title = String(format: "Edit Byte at 0x%08X", offset)
@@ -262,8 +237,6 @@ struct HexEditorView: View {
 		isDirty = true
 	}
 
-	/// Rebuilds only the single affected row (rather than the whole `rows` array,
-	/// which can hold millions of entries for large files) after a byte edit.
 	private func replaceRow(containing offset: Int) {
 		let rowOffset = (offset / HexFormatting.bytesPerRow) * HexFormatting.bytesPerRow
 		guard let rowIndex = rows.firstIndex(where: { $0.offset == rowOffset }) else { return }
@@ -273,11 +246,6 @@ struct HexEditorView: View {
 	}
 }
 
-// MARK: - Row rendering
-
-/// One offset/hex/ASCII row. Hex bytes render as individually tappable cells (instead
-/// of `row.hexString`'s single concatenated string) so a tap can target one byte for
-/// the single-byte-overwrite edit flow.
 private struct HexRowView: View {
 	let row: HexFormatting.Row
 	let isReadOnly: Bool

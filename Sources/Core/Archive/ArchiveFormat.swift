@@ -1,8 +1,5 @@
 import Foundation
 
-/// Every archive format Filzer can extract, plus which of those it can also create
-/// (`creatable`) — RAR (license-forbidden), bare GZip/BZip2 (single-stream, not real
-/// containers), XZ, and 7-Zip (no write support in SWCompression) are read-only.
 enum ArchiveFormat {
 	case zip
 	case rar
@@ -34,9 +31,6 @@ enum ArchiveFormat {
 		}
 	}
 
-	/// Whether `url`'s name looks like a supported archive — the single source of
-	/// truth `FileClassifier` (icon/viewer routing) and the "Extract Here" context
-	/// menu action both defer to, so a newly-supported format only needs listing once.
 	static func isArchive(_ url: URL) -> Bool {
 		let name = url.lastPathComponent.lowercased()
 		if name.hasSuffix(".tar.gz") || name.hasSuffix(".tgz") { return true }
@@ -47,9 +41,6 @@ enum ArchiveFormat {
 		}
 	}
 
-	/// The archive's name with its extension(s) stripped, for naming an "Extract
-	/// Here"/"Extract All" destination folder — e.g. `archive.tar.gz` -> `archive`, not
-	/// `archive.tar` (which plain `deletingPathExtension()` would produce).
 	static func baseName(for url: URL) -> String {
 		let name = url.lastPathComponent
 		let lowercased = name.lowercased()
@@ -68,8 +59,6 @@ enum ArchiveFormat {
 		return url.deletingPathExtension().lastPathComponent
 	}
 
-	/// Formats the "Compress" menu offers, in display order. Everything else here is
-	/// extraction-only.
 	static let creatable: [ArchiveFormat] = [.zip, .tar, .tarGz, .tarBz2]
 
 	var title: String {
@@ -86,8 +75,6 @@ enum ArchiveFormat {
 		}
 	}
 
-	/// The extension (without a leading dot, may contain one internally e.g.
-	/// `"tar.gz"`) a newly-created archive of this format should use.
 	var fileExtension: String {
 		switch self {
 		case .zip: return "zip"

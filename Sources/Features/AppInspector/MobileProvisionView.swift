@@ -1,9 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Read-only viewer for `.mobileprovision` files — the provisioning-profile summary
-/// screen Filza shows, without any of the install/trust actions that require a
-/// jailbreak or a Mac.
 struct MobileProvisionView: View {
 	let url: URL
 

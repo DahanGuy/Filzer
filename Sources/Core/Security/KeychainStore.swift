@@ -1,9 +1,6 @@
 import Foundation
 import Security
 
-/// Minimal generic-password Keychain wrapper. Used to store remote-connection
-/// credentials (WebDAV/FTP/SMB/cloud passwords and OAuth tokens) — these must never
-/// live in `UserDefaults`, which is unencrypted on-disk plist storage.
 enum KeychainStore {
 	private static let service = "com.guy.filzer.remote-credentials"
 

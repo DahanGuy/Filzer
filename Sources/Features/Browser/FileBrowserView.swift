@@ -3,14 +3,6 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-/// Filza's core screen: browses one folder with list/grid layout, sorting, multi-select
-/// batch actions, and every per-item action via context menu / swipe. Pushes a fresh
-/// instance of itself for subfolders and `FileViewerRoute` for files.
-///
-/// Every instance (root or a pushed subfolder) can open the Disks/Bookmarks/Recents/
-/// Settings flyouts — only `isRoot` (the single top-level instance `RootBrowserShell`
-/// owns) shows them on the leading side, alongside the system back button everywhere
-/// else; see `leadingToolbarContent`/`trailingToolbarContent`.
 struct FileBrowserView: View {
 	let rootURL: URL
 	var displayName: String? = nil
@@ -77,7 +69,7 @@ struct FileBrowserView: View {
 			}
 		}
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
-		.searchable(text: $searchQuery, prompt: "Search") // TEMPORARY: testing render position, see if bottom or top
+		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
@@ -174,12 +166,6 @@ struct FileBrowserView: View {
 		!searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 	}
 
-	/// A single hidden `NavigationLink` driving programmatic push, plus a captured
-	/// reference to this screen's own `UINavigationController` (see
-	/// `NavigationControllerAccessor`) — used by `PathNavigatorView`'s "Go" action and
-	/// by tapping a folder inside the Disks/Bookmarks/Recents flyouts (which dismiss
-	/// themselves and hand the target back here via `onNavigate`, so the folder opens
-	/// in *this* screen's own stack instead of nesting inside the flyout's).
 	private var navigationLinks: some View {
 		Group {
 			NavigationLink(
@@ -201,26 +187,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// `chainFromRoot: true` (Bookmarks/Recents jumps) walks up from the nearest
-	/// reachable root and pushes every folder from there down to `url`, exactly as if
-	/// the user had tapped through each one by hand, so backing out retraces the same
-	/// folders one level at a time - but only when that root is the volume root or the
-	/// sandbox container. An Added Folder or remote connection's own root never
-	/// chains, matching Disks' own jumps: there's nothing reachable above it to walk
-	/// through, so a chain rooted there would just be a same-length detour, not a
-	/// meaningful "way you got there". `PathNavigatorView`'s "Go" jumps push `url`
-	/// directly too - a typed path isn't "the way you got there" the way a bookmark is.
-	///
-	/// A chain of more than one folder is pushed by reaching straight into this
-	/// screen's own `UINavigationController` (`pushChain`), never through a SwiftUI
-	/// `NavigationLink`. Driving a multi-level push reactively through `pendingNavigation`
-	/// - even bridged through a `UIViewControllerRepresentable` that later replaced
-	/// itself - still leaves that stack slot under a live `NavigationLink(isActive:)`
-	/// binding; SwiftUI "reconciles" its own tracked destination against whatever's
-	/// actually there and reverts the manual change, which is exactly what showed up as
-	/// the target flashing on screen and then reverting to an earlier level. A single
-	/// level has nothing to reconcile against and keeps using the plain, working
-	/// `pendingNavigation` path.
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		isSearchFieldFocused = false
 		searchQuery = ""
@@ -230,11 +196,6 @@ struct FileBrowserView: View {
 		} else {
 			chain = [url]
 		}
-		// The chain's own first level can be exactly the folder already on screen -
-		// e.g. jumping to a bookmark from the root screen ("/") itself chains from "/"
-		// too, which would otherwise re-push a second, redundant "/" ahead of the one
-		// already at the bottom of the stack. Drop it; everything after it is still a
-		// real step down from what's currently showing.
 		if chain.count > 1, chain[0].path == rootURL.path {
 			chain.removeFirst()
 		}
@@ -245,11 +206,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Appends every intermediate folder to the stack in one non-animated
-	/// `setViewControllers` call, then pushes the final (target) folder with the usual
-	/// animated transition - one clean push the user actually sees, no per-level
-	/// animation cost, and (critically) no SwiftUI `NavigationLink` involved anywhere
-	/// in the process to fight with the manual stack mutation.
 	private func pushChain(_ chain: [URL], displayName: String?, on navigationController: UINavigationController) {
 		let hostingControllers: [UIViewController] = chain.enumerated().map { index, url in
 			let view = FileBrowserView(rootURL: url, displayName: index == chain.count - 1 ? displayName : nil)
@@ -272,12 +228,6 @@ struct FileBrowserView: View {
 		return (addedFolderRoots + remoteRoots).contains(root.absoluteString)
 	}
 
-	/// The nearest known reachable root at or above `url`, most-specific first: an
-	/// Added Folder or remote connection's own root, the sandbox container, or - for
-	/// any plain local path none of those cover, e.g. a bookmark somewhere like
-	/// `/private/var/mobile` that sits *above* the sandbox container - the volume root
-	/// itself, so the chain always has somewhere to start from and never falls back to
-	/// a bare single-level push.
 	private func reachableRoot(containing url: URL) -> URL? {
 		var candidates = [URL(fileURLWithPath: "/"), URL(fileURLWithPath: NSHomeDirectory())]
 		candidates += bookmarks.entries
@@ -297,8 +247,6 @@ struct FileBrowserView: View {
 		return Array(urlComponents.prefix(rootComponents.count)) == rootComponents
 	}
 
-	/// Every folder from `root` (first) down to (and including) `target` (last), one
-	/// path component at a time.
 	private func pathChain(from root: URL, to target: URL) -> [URL] {
 		let remainder = target.pathComponents.dropFirst(root.pathComponents.count)
 		var chain = [root]
@@ -310,8 +258,6 @@ struct FileBrowserView: View {
 		return chain
 	}
 
-	// MARK: - Empty / search states
-
 	@ViewBuilder
 	private var emptyStateContent: some View {
 		if viewModel.loadErrorMessage != nil {
@@ -321,8 +267,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Recursive (subfolders too) or flat (current folder only) per
-	/// `settings.recursiveSearch` - see `scheduleSearch`.
 	@ViewBuilder
 	private var searchResultsContent: some View {
 		if isSearchLoading {
@@ -335,11 +279,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Recursive (subfolders too) or flat (current folder only) per
-	/// `settings.recursiveSearch`, debounced 300ms. Any failure - an inaccessible
-	/// folder anywhere in a recursive walk, or the current folder itself going
-	/// unreadable mid-session - is skipped silently rather than surfacing an error
-	/// popup; the user just sees fewer/no results.
 	private func scheduleSearch() {
 		searchTask?.cancel()
 		guard isSearchActive else {
@@ -372,8 +311,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	// MARK: - Content
-
 	@ViewBuilder
 	private var content: some View {
 		switch settings.viewMode {
@@ -390,11 +327,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// A symlink never lands on Quick Look for itself — `resolvingSymlinksInPath`
-	/// follows the *entire* chain (not just one hop, unlike `symbolicLinkDestination`)
-	/// so this opens the real browser or viewer for whatever it ultimately points to,
-	/// exactly like tapping that target directly would. Fully synchronous: no loading
-	/// spinner between tapping a folder-symlink and it pushing.
 	@ViewBuilder
 	private func destination(for node: FileNode) -> some View {
 		if node.isSymbolicLink {
@@ -530,8 +462,6 @@ struct FileBrowserView: View {
 		)
 	}
 
-	// MARK: - Toolbar
-
 	@ToolbarContentBuilder
 	private var toolbarLeading: some ToolbarContent {
 		ToolbarItem(placement: .navigationBarLeading) {
@@ -546,9 +476,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// TEMPORARY: searchBar removed from this slot to isolate the .searchable()
-	/// placement test - only selectionActionBar remains here now, so whatever search
-	/// UI is visible is unambiguously .searchable()'s doing.
 	@ViewBuilder
 	private var bottomBar: some View {
 		if viewModel.isSelecting {
@@ -556,10 +483,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// `.contentShape` + `.onTapGesture` makes the *entire* pill focus the field, not
-	/// just wherever `TextField`'s own narrow hit-testing region happens to land -
-	/// taps landing directly on the text itself still reach `TextField` first and
-	/// behave normally (placing the cursor).
 	private var searchBar: some View {
 		HStack(spacing: 8) {
 			Image(systemName: "magnifyingglass")
@@ -602,11 +525,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Root's trailing side has no spare room next to its 4 leading icons, so
-	/// Select/Add/Sort collapse into one explicit menu. A pushed subfolder frees the
-	/// leading side down to just the back button, so it keeps Select/Add/Sort as
-	/// separate items and gains one more menu — for the Disks/Bookmarks/Recents/
-	/// Settings flyouts that root's leading icons would otherwise provide.
 	@ViewBuilder
 	private var trailingToolbarContent: some View {
 		if viewModel.isSelecting {
@@ -629,12 +547,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// `bottomBar`'s multi-select branch - Copy/Cut/Compress/Share/
-	/// Delete as a row of circular icon buttons in the same `OverlayBackground` bar
-	/// treatment, instead of cramming them into a top-toolbar ellipsis menu. Every
-	/// button reuses `TranslucentButtonStyle`'s exact recipe - `Compress` has to
-	/// replicate it by hand since it's a `Menu` (for the format submenu), and
-	/// `ButtonStyle` doesn't apply to `Menu` labels the way it does to `Button`.
 	private var selectionActionBar: some View {
 		HStack {
 			Spacer()
@@ -690,9 +602,6 @@ struct FileBrowserView: View {
 		.accessibilityLabel(label)
 	}
 
-	/// Root's single trailing menu: Select is a plain action, Add/Sort are nested
-	/// submenus with identical content to the subfolder toolbar's own `addMenu`/
-	/// `sortMenu` below.
 	private var rootActionsMenu: some View {
 		Menu {
 			Button {
@@ -720,8 +629,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// A subfolder's extra trailing menu, standing in for the Disks/Bookmarks/Recents/
-	/// Settings icons root shows on its (here unavailable) leading side.
 	private var locationsMenu: some View {
 		Menu {
 			Button { showingDisks = true } label: { Label("Disks", systemImage: "externaldrive") }
@@ -742,8 +649,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// Sort field + direction only — view mode (list/grid) and hidden-file visibility
-	/// are app-wide preferences that live in Settings, not per-folder sort options.
 	@ViewBuilder
 	private var sortMenuItems: some View {
 		Picker("Sort By", selection: sortFieldBinding) {
@@ -802,8 +707,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	// MARK: - Prompts
-
 	private func promptNewFolder() {
 		Alertinator.shared.prompt(title: "New Folder", placeholder: "Name", text: "untitled folder") { name in
 			guard let name, !name.isEmpty else { return }
@@ -825,9 +728,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	/// "Extract Here" from the context menu - unlike the interactive `ArchiveBrowserView`
-	/// (which has its own password prompt), this is a one-tap action, so a
-	/// password-protected archive needs its own retry loop right here.
 	private func extractArchiveHere(_ node: FileNode, password: String? = nil) {
 		Task {
 			do {
@@ -843,16 +743,6 @@ struct FileBrowserView: View {
 	}
 }
 
-/// Captures the real `UINavigationController` hosting this specific `FileBrowserView`
-/// screen, once, and hands it back via `onResolve` - used only so a multi-level
-/// Bookmarks/Recents chain jump (`pushChain`) can push straight onto it later,
-/// entirely outside SwiftUI's own `NavigationLink`/`isActive` machinery. Driving that
-/// same push *through* a live `NavigationLink` (even indirectly, via a
-/// `UIViewControllerRepresentable` that swaps itself out after appearing) still left
-/// SwiftUI convinced it owned that stack slot; it "reconciled" its own tracked
-/// destination against the manually-pushed one and reverted the change - the target
-/// flashing on screen and then reverting to an earlier level. A stack mutation that no
-/// `NavigationLink` ever claimed ownership of has nothing for SwiftUI to revert.
 private struct NavigationControllerAccessor: UIViewControllerRepresentable {
 	let onResolve: (UINavigationController) -> Void
 

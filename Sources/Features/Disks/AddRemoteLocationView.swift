@@ -1,11 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Add-connection form for WebDAV/FTP/SMB (host+password) or Dropbox/Google
-/// Drive/OneDrive (OAuth). WebDAV/FTP/SMB passwords go straight to the Keychain via
-/// `RemoteConnectionsStore.add`; the cloud kinds sign in interactively here and the
-/// resulting OAuth tokens land in the Keychain via `OAuthTokenStore` before the
-/// connection is ever saved.
 struct AddRemoteLocationView: View {
 	@Environment(\.dismiss) private var dismiss
 	@EnvironmentObject private var remoteConnections: RemoteConnectionsStore
@@ -19,7 +14,6 @@ struct AddRemoteLocationView: View {
 	@State private var useSecureConnection = true
 	@State private var basePath = "/"
 
-	// OAuth (cloud) kinds only.
 	@State private var pendingConnectionID = UUID()
 	@State private var clientID = ""
 	@State private var isSignedIn = false
@@ -54,8 +48,6 @@ struct AddRemoteLocationView: View {
 		.errorAlert($errorMessage)
 	}
 
-	// MARK: - WebDAV/FTP/SMB
-
 	@ViewBuilder
 	private var hostBasedSections: some View {
 		Section(header: HeaderLabel(text: "Server", icon: "server.rack")) {
@@ -81,8 +73,6 @@ struct AddRemoteLocationView: View {
 			SecureField("Password", text: $password)
 		}
 	}
-
-	// MARK: - Cloud (OAuth)
 
 	@ViewBuilder
 	private var cloudSections: some View {

@@ -1,11 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Sheet content behind `SQLiteViewerView`'s "Run SQL" button — a free-form query editor
-/// whose results render through the same `SQLiteResultGrid` used by `SQLiteTableView`.
-///
-/// Presented modally via `.sheet`, so — unlike the pushed viewers in this feature — it
-/// owns its own `NavigationView` to get a title bar and a "Done" button.
 struct SQLiteQueryView: View {
 	let url: URL
 
@@ -61,8 +56,6 @@ struct SQLiteQueryView: View {
 		.navigationViewStyle(.stack)
 	}
 
-	/// Opens a throwaway `SQLiteReader` off the main thread to run the query — its
-	/// C-API calls are blocking, so this never happens directly on the view body.
 	private func runQuery() {
 		let dbURL = url
 		let sql = sqlText

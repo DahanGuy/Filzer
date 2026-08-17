@@ -1,8 +1,6 @@
 import Combine
 import Foundation
 
-/// Per-extension viewer overrides (Filza's "File associations" settings screen).
-/// Falls back to `ViewerKind.defaultViewer(for:)` for any extension without an override.
 @MainActor
 final class FileAssociationsStore: ObservableObject {
 	@Published private(set) var associations: [String: ViewerKind] = [:]

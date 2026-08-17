@@ -1,9 +1,5 @@
 import Foundation
 
-/// Shared "read one directory level" building block used by the browsing operation
-/// itself and every recursive traversal (size calculation, search, recursive
-/// permission apply) so they all inherit the same symlink-safe classification from
-/// `FileNode.make`.
 enum DirectoryLister {
 	static func children(of directory: URL, includeHidden: Bool) throws -> [FileNode] {
 		let fileManager = FileManager.default

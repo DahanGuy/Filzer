@@ -1,8 +1,5 @@
 import Foundation
 
-/// Persists one `OAuthTokenSet` per connection in the Keychain, alongside where
-/// `RemoteConnectionsStore` already keeps WebDAV/FTP/SMB passwords — an OAuth token
-/// is just as sensitive as a password and must never land in `UserDefaults`.
 enum OAuthTokenStore {
 	private static func key(for connectionID: UUID) -> String {
 		"oauth.\(connectionID.uuidString)"
@@ -27,11 +24,6 @@ enum OAuthTokenStore {
 	}
 }
 
-/// Shared "get a currently-valid access token, refreshing if needed" bookkeeping —
-/// every OAuth-backed `RemoteFileProvider` (Dropbox/Google Drive/OneDrive) composes
-/// this instead of duplicating refresh logic three times. An `actor` so a burst of
-/// concurrent requests against one connection triggers at most one refresh, not one
-/// per request.
 actor OAuthSessionManager {
 	private let connectionID: UUID
 	private let clientID: String

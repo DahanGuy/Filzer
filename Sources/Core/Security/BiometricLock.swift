@@ -1,8 +1,6 @@
 import Foundation
 import LocalAuthentication
 
-/// Thin wrapper over LocalAuthentication powering the optional app-lock (Filza's
-/// "Access password" + Touch ID/Face ID gate).
 enum BiometricLock {
 	enum Kind {
 		case faceID
@@ -28,7 +26,6 @@ enum BiometricLock {
 		}
 	}
 
-	/// Prompts Face ID / Touch ID / device passcode. Returns `true` only on success.
 	static func authenticate(reason: String) async -> Bool {
 		let context = LAContext()
 		var error: NSError?

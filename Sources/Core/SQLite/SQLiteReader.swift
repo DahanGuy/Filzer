@@ -1,10 +1,6 @@
 import Foundation
 import SQLite3
 
-/// A minimal, read-oriented wrapper around the system `libsqlite3` C API — just enough
-/// to power Filzer's SQLite viewer (list tables, page through rows, run a free-form
-/// query). Always opens with `SQLITE_OPEN_READONLY`: this viewer never mutates a
-/// database.
 final class SQLiteReader {
 	enum ReaderError: LocalizedError {
 		case cannotOpen(String)
@@ -55,7 +51,6 @@ final class SQLiteReader {
 		return value
 	}
 
-	/// Runs arbitrary caller-supplied SQL, for the viewer's free-form query field.
 	func run(_ sql: String) throws -> QueryResult {
 		guard let handle else { throw ReaderError.cannotOpen("Database is closed.") }
 		var statement: OpaquePointer?

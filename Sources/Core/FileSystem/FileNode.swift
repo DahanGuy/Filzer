@@ -1,9 +1,5 @@
 import Foundation
 
-/// Immutable snapshot of a single filesystem entry as reported by a `FileSystemEngine`.
-///
-/// `FileNode` never mutates in place — every file operation returns fresh nodes,
-/// which keeps SwiftUI's diffing simple and avoids stale-state bugs after a move/rename.
 struct FileNode: Identifiable, Hashable {
 	enum Kind: Hashable {
 		case file
@@ -20,13 +16,7 @@ struct FileNode: Identifiable, Hashable {
 	let posixPermissions: Int16
 	let ownerAccountName: String?
 	let groupOwnerAccountName: String?
-	/// Resolved target of a symbolic link. `nil` for every other kind.
 	let symbolicLinkDestination: URL?
-	/// Whether a symlink's target is itself a directory — meaningless for every other
-	/// kind (defaults `false`). A cheap `fileExists(atPath:isDirectory:)` check, not a
-	/// full recursive `FileNode.make` re-classification of the target (which risks
-	/// statting deep chains just to render a listing) — used so folder-symlinks sort
-	/// and navigate the same as real folders instead of being lumped in with files.
 	let symbolicLinkTargetIsDirectory: Bool
 	let isHidden: Bool
 
@@ -34,18 +24,8 @@ struct FileNode: Identifiable, Hashable {
 	var pathExtension: String { url.pathExtension }
 	var isDirectory: Bool { kind == .directory }
 	var isSymbolicLink: Bool { kind == .symbolicLink }
-	/// Whether this node should group with folders in a listing — real directories,
-	/// plus symlinks whose target is itself a directory.
 	var sortsAsDirectory: Bool { isDirectory || (isSymbolicLink && symbolicLinkTargetIsDirectory) }
 
-	/// Builds a snapshot for a single path.
-	///
-	/// Symlinks are detected via `destinationOfSymbolicLink` *before* reading any other
-	/// attribute. That call is the only unambiguous way Foundation offers to tell a link
-	/// apart from the file it points to — `attributesOfItem(atPath:)` follows the link and
-	/// would misreport a symlink-to-directory as a plain directory. Classifying links up
-	/// front is also what keeps every recursive traversal in this app (size, search,
-	/// delete) cycle-safe without extra bookkeeping: a symlink is always a leaf.
 	static func make(at url: URL) throws -> FileNode {
 		let fm = FileManager.default
 		let path = url.path
@@ -91,8 +71,6 @@ struct FileNode: Identifiable, Hashable {
 	}
 }
 
-/// Synthesizes nodes for remote (WebDAV/FTP/SMB) items, which have no POSIX
-/// permissions or ownership — `SandboxedFileSystemEngine` is the only caller.
 extension FileNode {
 	static func remote(url: URL, item: RemoteItem) -> FileNode {
 		FileNode(
@@ -109,8 +87,6 @@ extension FileNode {
 		)
 	}
 
-	/// A connection's own root — always a directory, and with no listable parent to
-	/// stat it against (unlike every other remote path).
 	static func remoteRoot(url: URL) -> FileNode {
 		let name = url.lastPathComponent
 		return FileNode(
@@ -128,8 +104,6 @@ extension FileNode {
 	}
 }
 
-/// A single entry inside a browsable archive (zip, rar, tar, gzip, bzip2, xz, 7z),
-/// reported without extracting the archive to disk.
 struct ArchiveEntry: Identifiable, Hashable {
 	let path: String
 	let isDirectory: Bool
@@ -140,7 +114,6 @@ struct ArchiveEntry: Identifiable, Hashable {
 	var name: String { (path as NSString).lastPathComponent }
 }
 
-/// Free/total space for the volume backing a given URL.
 struct VolumeInfo: Hashable {
 	let totalCapacity: Int64
 	let availableCapacity: Int64

@@ -1,8 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Persistent banner shown whenever `ClipboardStore` holds items — Filza's "N item(s)
-/// in Pasteboard. Tap here to Paste."
 struct PasteboardBanner: View {
 	let count: Int
 	let operation: ClipboardOperation

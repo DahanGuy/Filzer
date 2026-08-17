@@ -1,9 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// Presents the system share sheet for more than one URL at once. PartyUI's own
-/// `presentShareSheet(with:)` only takes a single file, so multi-select Share in the
-/// browser needs this small equivalent.
 @MainActor
 func presentMultiShareSheet(for urls: [URL]) {
 	guard !urls.isEmpty else { return }

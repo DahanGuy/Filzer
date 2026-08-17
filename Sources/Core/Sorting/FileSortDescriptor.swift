@@ -1,8 +1,5 @@
 import Foundation
 
-/// How a folder listing is ordered. Persisted in `SettingsStore` and applied by
-/// `FileBrowserViewModel` — never baked into the engine, since sorting is a
-/// presentation concern, not a filesystem one.
 enum FileSortField: String, CaseIterable, Identifiable, Codable {
 	case name
 	case dateModified
@@ -27,8 +24,6 @@ struct FileSortDescriptor: Codable, Equatable {
 
 	static let `default` = FileSortDescriptor(field: .name, ascending: true)
 
-	/// Folders always sort ahead of files (Filza's own listing behavior), then the
-	/// chosen field breaks ties, then name breaks any remaining tie deterministically.
 	func comparator() -> (FileNode, FileNode) -> Bool {
 		{ lhs, rhs in
 			if lhs.sortsAsDirectory != rhs.sortsAsDirectory {

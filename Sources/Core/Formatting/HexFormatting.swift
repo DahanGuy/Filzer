@@ -1,7 +1,5 @@
 import Foundation
 
-/// Splits raw bytes into fixed-width rows for the hex editor's offset / hex / ASCII
-/// columns, and renders individual byte values. Pure formatting — no file I/O.
 enum HexFormatting {
 	static let bytesPerRow = 16
 
@@ -41,8 +39,6 @@ enum HexFormatting {
 		return rows
 	}
 
-	/// Parses user-entered hex text (e.g. from a "Find" field), tolerating spaces,
-	/// into raw bytes to search for. Returns `nil` if the text isn't valid hex.
 	static func bytes(fromHexString text: String) -> [UInt8]? {
 		let cleaned = text.filter { !$0.isWhitespace }
 		guard !cleaned.isEmpty, cleaned.count.isMultiple(of: 2) else { return nil }

@@ -1,8 +1,5 @@
 import Foundation
 
-/// OneDrive client via Microsoft Graph v1.0 + OAuth 2.0 authorization-code+PKCE.
-/// Graph addresses items by path via its `root:/{path}:/{relationship}` convention,
-/// same as WebDAV/Dropbox, so no ID-graph translation is needed here either.
 struct OneDriveProvider: RemoteFileProvider {
 	enum OneDriveError: LocalizedError {
 		case httpStatus(Int, String)
@@ -18,9 +15,6 @@ struct OneDriveProvider: RemoteFileProvider {
 		}
 	}
 
-	/// Microsoft's own mandated redirect format for a public-client iOS app —
-	/// `msauth.<bundle-id>://auth`, computed from Filzer's bundle identifier. The
-	/// user must register exactly this URI in their Entra app.
 	static let redirectURI = "msauth.com.guy.filzer://auth"
 
 	static let endpoints = OAuthEndpoints(
@@ -54,8 +48,6 @@ struct OneDriveProvider: RemoteFileProvider {
 	}
 
 	func readFile(at path: String) async throws -> Data {
-		// Graph's /content answers 302 with a preauthenticated download URL that
-		// URLSession follows automatically, so this reads exactly like a plain GET.
 		var request = URLRequest(url: itemURL(for: path, suffix: ":/content"))
 		let token = try await sessionManager.validAccessToken()
 		request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -91,8 +83,6 @@ struct OneDriveProvider: RemoteFileProvider {
 		_ = try await authorizedData(&request)
 	}
 
-	/// Overrides the default read+write fallback — Graph's PATCH move/rename works
-	/// server-side on folders too.
 	func move(from source: String, to destination: String) async throws {
 		let (destinationParent, destinationName) = Self.splitPath(destination)
 		let encodedParent = Self.percentEncodedPath(destinationParent)
@@ -106,8 +96,6 @@ struct OneDriveProvider: RemoteFileProvider {
 		])
 		_ = try await authorizedData(&request)
 	}
-
-	// MARK: - URL building
 
 	private static let base = "https://graph.microsoft.com/v1.0/me/drive"
 
@@ -123,8 +111,6 @@ struct OneDriveProvider: RemoteFileProvider {
 		return URL(string: url)!
 	}
 
-	/// Percent-encodes each path segment individually (never the whole path at once,
-	/// which would also escape the `/` and `:` Graph needs to parse the address).
 	private static func percentEncodedPath(_ path: String) -> String {
 		let trimmed = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
 		guard !trimmed.isEmpty else { return "" }
@@ -142,8 +128,6 @@ struct OneDriveProvider: RemoteFileProvider {
 		let parent = components.dropLast().joined(separator: "/")
 		return (parent.isEmpty ? "/" : "/" + parent, String(name))
 	}
-
-	// MARK: - Transport
 
 	private func graphJSON(url: URL) async throws -> [String: Any] {
 		var request = URLRequest(url: url)

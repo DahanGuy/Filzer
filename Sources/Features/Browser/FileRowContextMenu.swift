@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// The long-press context menu for a single row in `FileBrowserView`. Pulled out of
-/// `FileBrowserView` itself purely to keep that file's size manageable — every action
-/// here is just a callback into `FileBrowserView`'s own state/view model.
 struct FileRowContextMenuContent: View {
 	let node: FileNode
 	let isBookmarked: Bool

@@ -5,7 +5,7 @@ struct AboutView: View {
 	var body: some View {
 		List {
 			Section {
-				AppInfoCell(build: "Beta")
+				AppInfoCell(build: "Release")
 			}
 
 			Section(header: HeaderLabel(text: "Credits", icon: "star")) {

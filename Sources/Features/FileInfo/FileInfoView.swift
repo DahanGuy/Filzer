@@ -1,9 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// The "Properties" sheet: name/path/size/dates, symlink destination, ownership,
-/// permissions summary (with a link to the full editor), and media/image metadata
-/// when relevant. Presented as a sheet from `FileBrowserView`'s context menu.
 struct FileInfoView: View {
 	let node: FileNode
 

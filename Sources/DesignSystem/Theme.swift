@@ -1,15 +1,10 @@
 import SwiftUI
 
-/// App-specific layout tokens shared by every screen. Corner radii deliberately reuse
-/// PartyUI's own `cornerRad.component` / `cornerRad.platter` at call sites instead of
-/// duplicating a second radius scale — this file only holds tokens PartyUI doesn't provide.
 enum Theme {
 	static let rowIconSize: CGFloat = 30
 	static let rowIconCornerRadius: CGFloat = 6
 	static let sectionSpacing: CGFloat = 16
 
-	/// Tint color per `FileCategory`, used by `FileIconView` and anywhere else a
-	/// category needs a consistent accent (e.g. the storage usage breakdown).
 	static func color(for category: FileCategory) -> Color {
 		switch category {
 		case .folder: return .accentColor

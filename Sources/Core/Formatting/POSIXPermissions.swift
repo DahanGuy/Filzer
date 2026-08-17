@@ -1,7 +1,5 @@
 import Foundation
 
-/// Decomposes/recomposes a POSIX permission mode (as stored in `FileNode.posixPermissions`)
-/// into the rwx grid + special bits Filza's "Access Permissions" screen exposes.
 struct POSIXPermissions: Equatable {
 	struct Triad: Equatable {
 		var read: Bool
@@ -49,12 +47,10 @@ struct POSIXPermissions: Equatable {
 		return value
 	}
 
-	/// The classic 3-4 digit octal string Filza shows as a live "Mask" while editing.
 	var octalString: String {
 		String(format: "%o", mode)
 	}
 
-	/// The classic `rwxr-xr-x` rendering, with `s`/`t` special-bit substitutions.
 	var symbolicString: String {
 		func render(_ triad: Triad, special: (set: Bool, upper: Character, lower: Character)) -> String {
 			var result = ""

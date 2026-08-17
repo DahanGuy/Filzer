@@ -13,7 +13,6 @@ struct RecentEntry: Codable, Identifiable, Equatable {
 	}
 }
 
-/// Tracks recently-opened files (Filza's Recents section), most recent first.
 @MainActor
 final class RecentsStore: ObservableObject {
 	@Published private(set) var entries: [RecentEntry] = []

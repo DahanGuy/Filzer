@@ -2,8 +2,6 @@ import PartyUI
 import SwiftUI
 import WebKit
 
-/// Renders local HTML files via `WKWebView.loadFileURL`, granting read access to the
-/// file's own containing directory so relative assets (css/js/images) still resolve.
 struct WebViewerView: View {
 	let url: URL
 
@@ -39,10 +37,6 @@ struct WebViewerView: View {
 	}
 }
 
-/// `UIViewRepresentable` wrapper around `WKWebView`. `updateUIView` runs on every
-/// SwiftUI diff pass, so the coordinator remembers which `reloadToken` it already
-/// loaded and only calls `loadFileURL` again when that token changes — once on
-/// first appearance, and again only when the "Reload" toolbar button bumps it.
 private struct WebContentView: UIViewRepresentable {
 	let url: URL
 	let reloadToken: UUID
@@ -65,8 +59,6 @@ private struct WebContentView: UIViewRepresentable {
 	}
 
 	final class Coordinator: NSObject, WKNavigationDelegate {
-		/// The `reloadToken` this coordinator has already issued a load for — `nil`
-		/// until the first `updateUIView` call.
 		var loadedToken: UUID?
 		@Binding var isLoading: Bool
 

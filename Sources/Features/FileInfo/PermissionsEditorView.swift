@@ -1,8 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Filza's "Access Permissions" screen: independent rwx toggles per owner/group/other,
-/// special bits, a live octal mask, and (for folders) a recursive apply option.
 struct PermissionsEditorView: View {
 	let node: FileNode
 

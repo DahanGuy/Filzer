@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Standard error-alert wiring used by every screen that can fail an async file
-/// operation: `@State private var errorMessage: String?`, then `.errorAlert($errorMessage)`.
 private struct ErrorAlertModifier: ViewModifier {
 	@Binding var errorMessage: String?
 

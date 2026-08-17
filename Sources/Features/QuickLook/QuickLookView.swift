@@ -1,9 +1,6 @@
 import QuickLook
 import SwiftUI
 
-/// Fallback viewer for anything without a bespoke editor (PDFs, Office docs, unknown
-/// types) — wraps `QLPreviewController`, which already ships its own share/print/markup
-/// toolbar, so this stays a thin `UIViewControllerRepresentable` shim.
 struct QuickLookView: View {
 	let url: URL
 
@@ -14,8 +11,6 @@ struct QuickLookView: View {
 	}
 }
 
-/// Bridges `QLPreviewController` into SwiftUI. The data source only ever has one item —
-/// the file at `url` — so the coordinator is a minimal, stateless adapter.
 private struct QuickLookRepresentable: UIViewControllerRepresentable {
 	let url: URL
 
@@ -30,7 +25,6 @@ private struct QuickLookRepresentable: UIViewControllerRepresentable {
 	}
 
 	func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {
-		// The previewed URL never changes for the lifetime of this view; nothing to sync.
 	}
 
 	final class Coordinator: NSObject, QLPreviewControllerDataSource {

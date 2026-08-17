@@ -1,19 +1,6 @@
 import Foundation
 import Unrar
 
-/// RAR extraction via `mtgto/Unrar.swift`, a Swift wrapper over RarLab's own official
-/// UnRAR decompression source. Extraction only: the UnRAR License explicitly forbids
-/// using this source to build a RAR-*compatible archiver* or to re-create RAR's
-/// proprietary compression algorithm, so Filzer never creates `.rar` files — see
-/// `ArchiveFormat.creatable` for what it can create instead.
-///
-/// Password-protected RARs are supported for reading: the password (`nil` for an
-/// unprotected archive) is passed straight to `Archive`'s own native password
-/// handling, and a missing/wrong one surfaces as `FileSystemError.archivePasswordRequired`
-/// so `ArchiveBrowserView` can prompt and retry with a real one.
-///
-/// The UnRAR License requires its text (reproduced in `AboutView`'s licenses section)
-/// to accompany any software that redistributes this source.
 struct RarArchiveService: ArchiveService {
 	func compress(_ urls: [URL], to destination: URL) throws {
 		throw FileSystemError.unsupported("Filzer can only create .zip, .tar, .tar.gz, and .tar.bz2 archives.")
@@ -54,11 +41,6 @@ struct RarArchiveService: ArchiveService {
 		try extractedData(of: entry, from: unrarArchive, url: archive).write(to: destination)
 	}
 
-	/// Lists an already-opened archive's entries, translating a missing or wrong
-	/// password (`UnrarError.missingPassword` when none was supplied,
-	/// `UnrarError.badData` for a wrong one — unrar has no distinct "bad password"
-	/// case) into `FileSystemError.archivePasswordRequired`, the one signal
-	/// `ArchiveBrowserView` watches for to prompt and retry.
 	private func entries(of archive: Archive, url: URL) throws -> [Entry] {
 		do {
 			return try archive.entries()

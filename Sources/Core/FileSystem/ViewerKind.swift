@@ -1,9 +1,5 @@
 import Foundation
 
-/// Every internal viewer/editor Filzer can open a file in. `FileBrowserView` routes to
-/// one of these on tap; the context menu's "Open As" lets the user override the choice
-/// for a single instance, and `FileAssociationsStore` lets them override it permanently
-/// per extension.
 enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 	case text
 	case hex
@@ -51,11 +47,6 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 		}
 	}
 
-	/// Viewer kinds that need a real, local `file://` URL under the hood (AVPlayer,
-	/// WKWebView, QLPreviewController, and `sqlite3_open` all bypass
-	/// `FileSystemEngine` and read the filesystem directly) — `FileViewerRoute`
-	/// materializes remote content to a temporary local file before routing to one of
-	/// these, since they cannot be handed a `filzer-remote://` URL.
 	var requiresLocalFile: Bool {
 		switch self {
 		case .media, .web, .sqlite, .quickLook, .archive, .ipa: return true
@@ -63,7 +54,6 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 		}
 	}
 
-	/// The viewer Filzer picks for a file before consulting `FileAssociationsStore`.
 	static func defaultViewer(for node: FileNode) -> ViewerKind {
 		let extensionLowercased = node.pathExtension.lowercased()
 		if extensionLowercased == "ipa" { return .ipa }

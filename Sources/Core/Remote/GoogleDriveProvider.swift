@@ -1,13 +1,5 @@
 import Foundation
 
-/// Google Drive client via Drive API v3 + OAuth 2.0 authorization-code+PKCE.
-///
-/// Unlike WebDAV/Dropbox/OneDrive, Drive has no path strings at all — every item is an
-/// opaque `id` with a single `parents` id forming an ID graph, and names aren't unique
-/// within a folder. This actor resolves Filzer's path strings to Drive folder ids by
-/// walking segment-by-segment and caching the result, seeded with `"/" -> "root"` (the
-/// documented alias for My Drive's own root — no initial lookup needed). A cache miss
-/// or a stale (deleted/moved) id is resolved fresh from its last-known parent.
 actor GoogleDriveIDCache {
 	private var pathToID: [String: String] = ["/": "root"]
 
@@ -31,12 +23,6 @@ struct GoogleDriveProvider: RemoteFileProvider {
 		}
 	}
 
-	/// A fixed, app-wide custom scheme. Google's "iOS" OAuth client type forces a
-	/// redirect URI derived from each user's own Client ID (their reversed Client ID),
-	/// which a statically-built, bring-your-own-Client-ID IPA can't register in
-	/// advance — so Filzer instructs users to register a **Desktop app** type client
-	/// instead, which uses this same installed-app flow but accepts an arbitrary
-	/// fixed redirect URI (see `AddRemoteLocationView`'s Google instructions).
 	static let redirectURI = "com.guy.filzer.google:/oauth2redirect"
 
 	static let endpoints = OAuthEndpoints(
@@ -148,8 +134,6 @@ struct GoogleDriveProvider: RemoteFileProvider {
 		await idCache.invalidate(path)
 	}
 
-	/// Overrides the default read+write fallback — Drive's move is an atomic parent
-	/// swap (and optional rename) that works on folders without moving any bytes.
 	func move(from source: String, to destination: String) async throws {
 		let id = try await resolveID(for: source)
 		let (oldParentPath, _) = Self.splitPath(source)
@@ -171,8 +155,6 @@ struct GoogleDriveProvider: RemoteFileProvider {
 		await idCache.invalidate(source)
 		await idCache.store(id, for: destination)
 	}
-
-	// MARK: - Path <-> ID resolution
 
 	private func resolveID(for path: String) async throws -> String {
 		if let cached = await idCache.cachedID(for: path) { return cached }
@@ -204,8 +186,6 @@ struct GoogleDriveProvider: RemoteFileProvider {
 		let parent = components.dropLast().joined(separator: "/")
 		return (parent.isEmpty ? "/" : "/" + parent, String(name))
 	}
-
-	// MARK: - Transport
 
 	private func authorizedJSON(url: URL) async throws -> [String: Any] {
 		var request = URLRequest(url: url)

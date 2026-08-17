@@ -1,19 +1,11 @@
 import Combine
 import Foundation
 
-/// Drives a single `FileBrowserView` instance: the directory listing, multi-select
-/// state, and every mutating action (new/rename/duplicate/delete/paste/compress/links).
-/// Every mutation reloads the listing afterward so the view never has to reconcile
-/// stale state by hand.
 @MainActor
 final class FileBrowserViewModel: ObservableObject {
 	@Published private(set) var nodes: [FileNode] = []
 	@Published var isLoading = false
-	/// Set only by `reload()` — shown inline as an empty-state message, never as a
-	/// popup (navigating into an inaccessible sandboxed path is an expected, frequent
-	/// event here, not something worth interrupting the user for).
 	@Published private(set) var loadErrorMessage: String?
-	/// Set by mutating actions (create/rename/delete/paste/…) — shown via `.errorAlert`.
 	@Published var errorMessage: String?
 	@Published var isSelecting = false
 	@Published var selection: Set<URL> = []
@@ -39,8 +31,6 @@ final class FileBrowserViewModel: ObservableObject {
 		}
 	}
 
-	// MARK: - Selection
-
 	func toggleSelection(of node: FileNode) {
 		if selection.contains(node.url) {
 			selection.remove(node.url)
@@ -53,8 +43,6 @@ final class FileBrowserViewModel: ObservableObject {
 		isSelecting = false
 		selection.removeAll()
 	}
-
-	// MARK: - Mutating actions
 
 	func createFolder(name: String) async {
 		await run { try await FileSystem.current.createDirectory(at: self.rootURL.appendingPathComponent(name)) }
@@ -81,10 +69,6 @@ final class FileBrowserViewModel: ObservableObject {
 		await run { try await FileSystem.current.createHardLink(at: self.rootURL.appendingPathComponent(name), destination: target) }
 	}
 
-	/// Filzer never keeps its own Trash — deletion is permanent for anything in its own
-	/// sandbox. For an externally-bookmarked location, whatever the OS/document
-	/// provider does with a deleted item (e.g. iCloud Drive's own "Recently Deleted",
-	/// visible only in the system Files app) is outside Filzer's control or visibility.
 	func delete(_ urls: [URL]) async {
 		do {
 			try await FileSystem.current.delete(urls)
@@ -111,11 +95,6 @@ final class FileBrowserViewModel: ObservableObject {
 		}
 	}
 
-	/// Extracts an archive in-place into a new sibling folder named after it — for any
-	/// format `ArchiveFormat` recognizes, not just `.zip`. Throws directly (unlike
-	/// every other mutation here, which swallows into `errorMessage` via `run`) so the
-	/// caller can catch `FileSystemError.archivePasswordRequired` specifically, prompt
-	/// for one, and retry - `run` has no way to surface that distinction.
 	func extractHere(_ node: FileNode, password: String? = nil) async throws {
 		let name = Self.uniqueFolderName(baseName: ArchiveFormat.baseName(for: node.url), existingNames: Set(nodes.map(\.name)))
 		let destination = rootURL.appendingPathComponent(name)
@@ -143,8 +122,6 @@ final class FileBrowserViewModel: ObservableObject {
 	func setPermissions(_ urls: [URL], posixPermissions: Int16, recursive: Bool) async {
 		await run { try await FileSystem.current.setPermissions(urls, posixPermissions: posixPermissions, recursive: recursive) }
 	}
-
-	// MARK: - Helpers
 
 	private func run(_ operation: @escaping () async throws -> Void) async {
 		do {

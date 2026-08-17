@@ -1,7 +1,6 @@
 import PartyUI
 import SwiftUI
 
-/// Full-screen gate shown while `AppLockGate.isLocked` is true.
 struct LockScreenView: View {
 	@ObservedObject var lockGate: AppLockGate
 	@EnvironmentObject private var settings: SettingsStore

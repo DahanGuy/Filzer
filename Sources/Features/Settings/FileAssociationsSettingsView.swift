@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Per-extension viewer overrides (Filza's "File Associations" screen). An override
-/// beats `ViewerKind.defaultViewer(for:)` whenever a matching file is opened.
 struct FileAssociationsSettingsView: View {
 	@EnvironmentObject private var fileAssociations: FileAssociationsStore
 	@State private var isPresentingAdd = false
@@ -52,8 +50,6 @@ struct FileAssociationsSettingsView: View {
 	}
 }
 
-/// Sheet for adding (or overwriting) a single extension's viewer override,
-/// presented from the File Associations list's "+" toolbar button.
 private struct AddFileAssociationSheet: View {
 	@ObservedObject var fileAssociations: FileAssociationsStore
 	@Environment(\.presentationMode) private var presentationMode
