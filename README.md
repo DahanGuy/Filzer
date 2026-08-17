@@ -46,7 +46,7 @@ And thats how Filzer was made.
 - [ ] Add more viewers (like PDF viewer or Microsoft Document Viewer etc..)
 - [ ] Maybe Add Sandbox Escape Exploits (like MobileHouseArrest, MDC, Darksword and Coruna)
 
-## AI disclosure
+## AI Disclosure
 
 Filzer was made with AI, why? well Filzer was supposed to be a personal project and using AI is way easier, but i decided to make it public because why not.
 
