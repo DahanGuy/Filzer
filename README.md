@@ -34,13 +34,17 @@ And thats how Filzer was made.
 
 ## TODO
 
+- [ ] Fix Trollstore version not being able to access all paths
+- [ ] Change app icon
+- [ ] Fix small UI bugs
+- [ ] (Possible) Network Locations not working
 - [ ] Make going to a path always start from `/` even when already in a path (that's not `/`, fixes path stacking)
-- [ ] Change AI text in app to human made one
+- [ ] Change AI texts in app to human written ones
 - [ ] Change about credits text to the ones in the README
 - [ ] Add RAR, 7Z and XZ archive creation
 - [ ] Add Tabs
 - [ ] Add more viewers (like PDF viewer or Microsoft Document Viewer etc..)
-- [ ] Maybe Add Sandbox Escape Exploits (like MobileHouseArrest, MDC, Darksword and Coruna)
+- [ ] Add Sandbox Escape Exploits (like bad_query, MobileHouseArrest, MDC, Darksword and Coruna)
 
 ## AI Disclosure
 
