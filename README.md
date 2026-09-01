@@ -35,6 +35,7 @@ And thats how Filzer was made.
 ## TODO
 
 - [x] Make small UI Changes and fix small UI Bugs (mostly)
+- [ ] Fix Trollstore version cannot access entire filesystem
 - [ ] Fix Network Locations (possibly not working)
 - [ ] Change app icon
 - [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback
