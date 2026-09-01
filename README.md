@@ -35,11 +35,13 @@ And thats how Filzer was made.
 ## TODO
 
 - [x] Make small UI Changes and fix small UI Bugs (mostly)
+- [ ] Fix Network Locations (possibly not working)
+- [ ] Change app icon
 - [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback
 - [ ] Use [swift-archive](https://github.com/marcprux/swift-archive) instead of SWCompression, ZIPFoundation and Unrar.swift for archive handling
 - [ ] Add Tabs
-- [ ] Add more viewers (like PDF viewer or Microsoft Document Viewer etc..)
-- [ ] Maybe Add Sandbox Escape Exploits (like MobileHouseArrest, MDC, Darksword and Coruna)
+- [ ] Add more viewers (like a PDF viewer or a Microsoft Document Viewer etc..)
+- [ ] Maybe Add Sandbox Escape Exploits (like bad_query, MobileHouseArrest, MDC, Darksword and Coruna)
 
 ## AI Disclosure
 
