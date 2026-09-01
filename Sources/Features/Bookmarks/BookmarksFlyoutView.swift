@@ -34,14 +34,14 @@ struct BookmarksFlyoutView: View {
 		}
 		.navigationTitle("Bookmarks")
 		.toolbar {
-			ToolbarItem(placement: .navigationBarLeading) { Button("Done") { dismiss() } }
-			ToolbarItem(placement: .navigationBarTrailing) {
-				Button { showingAddBookmark = true } label: { Image(systemName: "plus") }
+			ToolbarItem(placement: .navigationBarLeading) {
+				Button("Done") { dismiss() }
 			}
-			ToolbarItem(placement: .navigationBarTrailing) {
+			ToolbarItemGroup(placement: .navigationBarTrailing) {
+				Button { showingAddBookmark = true } label: { Image(systemName: "plus") }
 				EditButton()
 			}
-		}
+        }
 		.sheet(isPresented: $showingAddBookmark) {
 			NavigationView { AddBookmarkView(initialPath: currentPath) }
 				.navigationViewStyle(.stack)

@@ -490,6 +490,7 @@ struct FileBrowserView: View {
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarContent
 		}
+		ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarSelectButtonContent
 		}
