@@ -62,6 +62,6 @@ struct MediaPlayerView: View {
 		formatter.unitsStyle = .positional
 		formatter.zeroFormattingBehavior = .pad
 		formatter.allowedUnits = duration >= 3600 ? [.hour, .minute, .second] : [.minute, .second]
-		return formatter.string(from: duration) ?? "—"
+		return formatter.string(from: duration) ?? "-"
 	}
 }

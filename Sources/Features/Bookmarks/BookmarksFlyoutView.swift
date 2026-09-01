@@ -36,10 +36,10 @@ struct BookmarksFlyoutView: View {
 		.toolbar {
 			ToolbarItem(placement: .navigationBarLeading) { Button("Done") { dismiss() } }
 			ToolbarItem(placement: .navigationBarTrailing) {
-				HStack(spacing: 18) {
-					EditButton()
-					Button { showingAddBookmark = true } label: { Image(systemName: "plus") }
-				}
+				Button { showingAddBookmark = true } label: { Image(systemName: "plus") }
+			}
+			ToolbarItem(placement: .navigationBarTrailing) {
+				EditButton()
 			}
 		}
 		.sheet(isPresented: $showingAddBookmark) {

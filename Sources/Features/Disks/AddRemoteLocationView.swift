@@ -127,9 +127,9 @@ struct AddRemoteLocationView: View {
 	private var setupInstructions: String {
 		switch kind {
 		case .dropbox:
-			return "Create an app at dropbox.com/developers/apps, add \(redirectURI) under OAuth 2 → Redirect URIs, and paste its App Key above."
+			return "Create an app at dropbox.com/developers/apps, add \(redirectURI) under OAuth 2 then Redirect URIs, and paste its App Key above."
 		case .googleDrive:
-			return "In Google Cloud Console, create an OAuth client of type \"Desktop app\" (not \"iOS\" — that type can't use a fixed redirect URI), add \(redirectURI) as an authorized redirect URI, and paste its Client ID above."
+			return "In Google Cloud Console, create an OAuth client of type \"Desktop app\" (not \"iOS\" as that type cannot use a fixed redirect URI), add \(redirectURI) as an authorized redirect URI, and paste its Client ID above."
 		case .oneDrive:
 			return "In the Entra admin center, register an app for \"Accounts in any organizational directory and personal Microsoft accounts\", add a Mobile/Desktop platform with redirect URI \(redirectURI), and paste the Application (client) ID above."
 		case .webDAV, .ftp, .smb:

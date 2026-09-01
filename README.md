@@ -1,6 +1,6 @@
 # Filzer
 
-A fully-featured iOS/iPadOS 15+ file manager inspired by Filza, built with SwiftUI and [PartyUI](https://github.com/jailbreakdotparty/PartyUI).
+A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tigisoftware.com/default/?page_id=78), built with SwiftUI and [PartyUI](https://github.com/jailbreakdotparty/PartyUI).
 
 ## Why make this
 
@@ -34,10 +34,9 @@ And thats how Filzer was made.
 
 ## TODO
 
-- [ ] Make going to a path always start from `/` even when already in a path (that's not `/`, fixes path stacking)
-- [ ] Change AI text in app to human made one
-- [ ] Change about credits text to the ones in the README
-- [ ] Add RAR, 7Z and XZ archive creation
+- [x] Make small UI Changes and fix small UI Bugs (mostly)
+- [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback
+- [ ] Use [swift-archive](https://github.com/marcprux/swift-archive) instead of SWCompression, ZIPFoundation and Unrar.swift for archive handling
 - [ ] Add Tabs
 - [ ] Add more viewers (like PDF viewer or Microsoft Document Viewer etc..)
 - [ ] Maybe Add Sandbox Escape Exploits (like MobileHouseArrest, MDC, Darksword and Coruna)
@@ -53,4 +52,4 @@ Filzer was made with AI, why? well Filzer was supposed to be a personal project 
 - [SWCompression](https://github.com/tsolomko/SWCompression) - TAR/GZIP/BZIP2/7Z extraction
 - [Unrar.swift](https://github.com/mtgto/Unrar.swift) - RAR extraction
 - [AMSMB2](https://github.com/amosavian/AMSMB2) - SMB support
-- Filza - Inspiration
+- [Filza](https://www.tigisoftware.com/default/?page_id=78) - Inspiration

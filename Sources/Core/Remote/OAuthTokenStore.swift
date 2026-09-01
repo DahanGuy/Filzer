@@ -46,7 +46,7 @@ actor OAuthSessionManager {
 			return current.accessToken
 		}
 		guard let refreshToken = current.refreshToken else {
-			throw OAuthClient.OAuthError.tokenExchangeFailed("Your signed-in session expired — sign in again.")
+			throw OAuthClient.OAuthError.tokenExchangeFailed("Your signed-in session expired. please sign in again.")
 		}
 		let refreshed = try await OAuthClient.refresh(clientID: clientID, endpoints: endpoints, refreshToken: refreshToken)
 		OAuthTokenStore.save(refreshed, for: connectionID)

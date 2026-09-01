@@ -17,8 +17,8 @@ enum IPAInspector {
 
 		var errorDescription: String? {
 			switch self {
-			case .noAppBundleFound: return "This doesn't look like a valid IPA — no Payload/*.app folder was found."
-			case .missingInfoPlist: return "This IPA's Info.plist couldn't be read."
+			case .noAppBundleFound: return "This iPA is invalid, no Payload/*.app folder was found."
+			case .missingInfoPlist: return "This iPA's Info.plist couldn't be read."
 			}
 		}
 	}

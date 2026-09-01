@@ -189,7 +189,7 @@ struct FileBrowserView: View {
 
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		isSearchFieldFocused = false
-		searchQuery = ""
+		searchQuery = ""	
 		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
 			chain = pathChain(from: root, to: url)
@@ -207,16 +207,32 @@ struct FileBrowserView: View {
 	}
 
 	private func pushChain(_ chain: [URL], displayName: String?, on navigationController: UINavigationController) {
-		let hostingControllers: [UIViewController] = chain.enumerated().map { index, url in
-			let view = FileBrowserView(rootURL: url, displayName: index == chain.count - 1 ? displayName : nil)
+		let currentPaths = navigationController.viewControllers.compactMap {
+			($0 as? UIHostingController<FileBrowserView>)?.rootView.rootURL.path
+		}
+
+		var commonCount = 0
+		while commonCount < currentPaths.count,
+			commonCount < chain.count,
+			currentPaths[commonCount] == chain[commonCount].path {
+			commonCount += 1
+		}
+
+		let keptControllers = Array(navigationController.viewControllers.prefix(commonCount))
+		let newURLs = Array(chain.suffix(from: commonCount))
+		guard !newURLs.isEmpty else { return }
+
+		let hostingControllers: [UIViewController] = newURLs.enumerated().map { index, url in
+			let view = FileBrowserView(rootURL: url, displayName: index == newURLs.count - 1 ? displayName : nil)
 				.environmentObject(settings)
 				.environmentObject(clipboard)
 				.environmentObject(bookmarks)
 				.environmentObject(remoteConnections)
 			return UIHostingController(rootView: view)
 		}
+
 		guard let last = hostingControllers.last else { return }
-		navigationController.setViewControllers(navigationController.viewControllers + hostingControllers.dropLast(), animated: false)
+		navigationController.setViewControllers(keptControllers + hostingControllers.dropLast(), animated: false)
 		navigationController.pushViewController(last, animated: true)
 	}
 
@@ -474,6 +490,9 @@ struct FileBrowserView: View {
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarContent
 		}
+		ToolbarItem(placement: .navigationBarTrailing) {
+			trailingToolbarSelectButtonContent
+		}
 	}
 
 	@ViewBuilder
@@ -516,7 +535,7 @@ struct FileBrowserView: View {
 		if viewModel.isSelecting {
 			Button("Cancel") { viewModel.endSelecting() }
 		} else if isRoot {
-			HStack(spacing: 18) {
+			HStack(spacing: 16) {
 				Button { showingDisks = true } label: { Image(systemName: "externaldrive") }
 				Button { showingBookmarks = true } label: { Image(systemName: "bookmark") }
 				Button { showingRecents = true } label: { Image(systemName: "clock") }
@@ -527,23 +546,28 @@ struct FileBrowserView: View {
 
 	@ViewBuilder
 	private var trailingToolbarContent: some View {
-		if viewModel.isSelecting {
-			Button(viewModel.selection.count == viewModel.nodes.count ? "Deselect All" : "Select All") {
-				if viewModel.selection.count == viewModel.nodes.count {
-					viewModel.selection.removeAll()
-				} else {
-					viewModel.selection = Set(viewModel.nodes.map(\.url))
+		if !viewModel.isSelecting {
+			if isRoot {
+				rootActionsMenu
+			} else {
+				HStack(spacing: 16) {
+					sortMenu
+					addMenu
+					locationsMenu
 				}
 			}
-		} else if isRoot {
-			rootActionsMenu
-		} else {
-			HStack(spacing: 18) {
-				Button("Select") { viewModel.isSelecting = true }
-				sortMenu
-				addMenu
-				locationsMenu
+		}
+	}
+
+	@ViewBuilder
+	private var trailingToolbarSelectButtonContent: some View {
+		if viewModel.isSelecting {
+			let allSelected = viewModel.selection.count == viewModel.nodes.count
+			Button(allSelected ? "Deselect All" : "Select All") {
+				viewModel.selection = allSelected ? [] : Set(viewModel.nodes.map(\.url))
 			}
+		} else if !isRoot {
+			Button("Select") { viewModel.isSelecting = true }
 		}
 	}
 
@@ -607,7 +631,7 @@ struct FileBrowserView: View {
 			Button {
 				viewModel.isSelecting = true
 			} label: {
-				Label("Select", systemImage: "checkmark.circle")
+				Label("Select", systemImage: "checkmark")
 			}
 			Button {
 				showingPathNavigator = true
@@ -617,15 +641,15 @@ struct FileBrowserView: View {
 			Menu {
 				addMenuItems
 			} label: {
-				Label("Add", systemImage: "plus.circle")
+				Label("Add", systemImage: "plus")
 			}
 			Menu {
 				sortMenuItems
 			} label: {
-				Label("Sort", systemImage: "arrow.up.arrow.down.circle")
+				Label("Sort", systemImage: "arrow.up.arrow.down")
 			}
 		} label: {
-			Image(systemName: "ellipsis.circle")
+			Image(systemName: "ellipsis")
 		}
 	}
 
@@ -637,7 +661,7 @@ struct FileBrowserView: View {
 			Button { showingPathNavigator = true } label: { Label("Go to Folder", systemImage: "arrow.forward.to.line") }
 			Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
 		} label: {
-			Image(systemName: "ellipsis.circle")
+			Image(systemName: "ellipsis")
 		}
 	}
 
@@ -645,7 +669,7 @@ struct FileBrowserView: View {
 		Menu {
 			sortMenuItems
 		} label: {
-			Image(systemName: "arrow.up.arrow.down.circle")
+			Image(systemName: "arrow.up.arrow.down")
 		}
 	}
 
@@ -677,7 +701,7 @@ struct FileBrowserView: View {
 		Menu {
 			addMenuItems
 		} label: {
-			Image(systemName: "plus.circle")
+			Image(systemName: "plus")
 		}
 	}
 

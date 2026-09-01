@@ -25,7 +25,7 @@ enum OAuthClient {
 		var errorDescription: String? {
 			switch self {
 			case .missingCode: return "The sign-in page didn't return an authorization code."
-			case .invalidAuthorizationURL: return "Couldn't build a valid sign-in URL — check the Client ID."
+			case .invalidAuthorizationURL: return "Couldn't build a valid sign-in URL, please check the Client ID."
 			case .tokenExchangeFailed(let message): return "Sign-in failed: \(message)"
 			}
 		}

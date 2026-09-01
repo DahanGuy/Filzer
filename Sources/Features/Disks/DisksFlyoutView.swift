@@ -77,7 +77,7 @@ struct DisksFlyoutView: View {
 					Button {
 						showingAddRemote = true
 					} label: {
-						Label("Add Network Location", systemImage: "cloud.fill")
+						Label("Add Network Location", systemImage: "cloud")
 					}
 				} label: {
 					Image(systemName: "plus")
@@ -109,7 +109,7 @@ struct DisksFlyoutView: View {
 					}
 				}
 				.frame(height: 10)
-				.overlay(Capsule().strokeBorder(Color(.separator), lineWidth: 0.5))
+				.overlay(Capsule().strokeBorder(Color(.separator), lineWidth: 1.5))
 
 				HStack {
 					Text("Used \(ByteCountFormat.string(for: volumeInfo.usedCapacity)) of \(ByteCountFormat.string(for: volumeInfo.totalCapacity))")

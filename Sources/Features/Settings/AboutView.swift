@@ -11,28 +11,33 @@ struct AboutView: View {
 			Section(header: HeaderLabel(text: "Credits", icon: "star")) {
 				LinkCreditCell(
 					name: "PartyUI",
-					description: "The design system the app was built with.",
+					description: "UI library",
 					url: "https://github.com/jailbreakdotparty/PartyUI"
 				)
 				LinkCreditCell(
 					name: "ZIPFoundation",
-					description: "Effortless ZIP Handling in Swift",
+					description: "ZIP support",
 					url: "https://github.com/weichsel/ZIPFoundation"
 				)
 				LinkCreditCell(
 					name: "SWCompression",
-					description: "A Swift framework for working with compression, archives and containers.",
+					description: "TAR/GZIP/BZIP2/7Z extraction",
 					url: "https://github.com/tsolomko/SWCompression"
 				)
 				LinkCreditCell(
 					name: "Unrar.swift",
-					description: "Swift library wraps unrar C++ library provided by rarlib.",
+					description: "RAR extraction",
 					url: "https://github.com/mtgto/Unrar.swift"
 				)
 				LinkCreditCell(
 					name: "AMSMB2",
-					description: "Swift framework to connect SMB2/3 shares",
+					description: "SMB support",
 					url: "https://github.com/amosavian/AMSMB2"
+				)
+				LinkCreditCell(
+					name: "Filza",
+					description: "Inspiration",
+					url: "https://www.tigisoftware.com/default/?page_id=78"
 				)
 			}
 		}
