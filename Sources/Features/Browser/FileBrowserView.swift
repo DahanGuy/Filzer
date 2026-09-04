@@ -71,7 +71,17 @@ struct FileBrowserView: View {
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
 		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
-		.toolbar { toolbarTrailing }
+		.toolbar {
+			ToolbarItem(placement: .navigationBarTrailing) {
+				trailingToolbarContent
+			}
+		}
+		.toolbar {
+			ToolbarItem(placement: .navigationBarTrailing) {
+				trailingToolbarSelectButtonContent
+			}
+		}
+		.modifier(ToolbarSpacerModifier())
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
@@ -484,20 +494,6 @@ struct FileBrowserView: View {
 		}
 	}
 
-	@ToolbarContentBuilder
-	private var toolbarTrailing: some ToolbarContent {
-		ToolbarItem(placement: .navigationBarTrailing) {
-			trailingToolbarContent
-		}
-		toolbarSpacerIfAvailable
-		ToolbarItem(placement: .navigationBarTrailing) {
-			trailingToolbarSelectButtonContent
-		}
-	}
-
-	private var toolbarSpacerIfAvailable: some ToolbarContent {
-		ToolbarSpacerCompat()
-	}
 
 	@ViewBuilder
 	private var bottomBar: some View {
@@ -798,12 +794,15 @@ private final class ResolverViewController: UIViewController {
 	}
 }
 
-struct ToolbarSpacerCompat: ToolbarContent {
-	var body: some ToolbarContent {
+private struct ToolbarSpacerModifier: ViewModifier {
+	func body(content: Content) -> some View {
 		if #available(iOS 26, *) {
-			ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+			content.toolbar {
+				ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+			}
 		} else {
-			ToolbarItem(placement: .navigationBarTrailing) { Spacer() }
+			content
 		}
 	}
 }
+
