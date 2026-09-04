@@ -490,7 +490,9 @@ struct FileBrowserView: View {
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarContent
 		}
-		ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+		if #available(iOS 26, *) {
+			ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+		}
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarSelectButtonContent
 		}
