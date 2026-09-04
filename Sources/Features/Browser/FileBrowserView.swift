@@ -72,30 +72,23 @@ struct FileBrowserView: View {
 			}
 		}
 		.searchable(text: isPathMode ? $pathQuery : $searchQuery, prompt: isPathMode ? "Path" : "Search")
-		.searchSuggestions {
-			if isPathMode {
-				ForEach(pathSuggestions, id: \.self) { suggestion in
-					let name = (suggestion as NSString).lastPathComponent
-					Button {
-						navigate(to: URL(fileURLWithPath: suggestion), displayName: nil)
-						isPathMode = false
-						pathQuery = ""
-					} label: {
-						Label(name, systemImage: "folder.fill")
-					}
-					.searchCompletion(suggestion)
-				}
-			}
-		}
-		.onSubmit(of: .search) {
-			if isPathMode {
+		.modifier(PathSuggestionsModifier(
+			isPathMode: isPathMode,
+			pathSuggestions: pathSuggestions,
+			onSelect: { suggestion in
+				navigate(to: URL(fileURLWithPath: suggestion), displayName: nil)
+				isPathMode = false
+				pathQuery = ""
+			},
+			onSubmit: {
+				guard isPathMode else { return }
 				let trimmed = pathQuery.trimmingCharacters(in: .whitespaces)
 				guard !trimmed.isEmpty else { return }
 				navigate(to: URL(fileURLWithPath: trimmed), displayName: nil)
 				isPathMode = false
 				pathQuery = ""
 			}
-		}
+		))
 		.toolbar { toolbarLeading }
 		.modifier(TrailingToolbarModifier(content: { trailingToolbarContent }, select: { trailingToolbarSelectButtonContent }))
 		.modifier(BottomSearchToolbarModifier(isPathMode: $isPathMode, pathQuery: $pathQuery, rootPath: rootURL.path))
@@ -852,6 +845,37 @@ private struct BottomSearchToolbarModifier: ViewModifier {
 					}
 				}
 			}
+		} else {
+			content
+		}
+	}
+}
+
+private struct PathSuggestionsModifier: ViewModifier {
+	let isPathMode: Bool
+	let pathSuggestions: [String]
+	let onSelect: (String) -> Void
+	let onSubmit: () -> Void
+
+	func body(content: Content) -> some View {
+		if #available(iOS 16, *) {
+			content
+				.searchSuggestions {
+					if isPathMode {
+						ForEach(pathSuggestions, id: \.self) { suggestion in
+							let name = (suggestion as NSString).lastPathComponent
+							Button {
+								onSelect(suggestion)
+							} label: {
+								Label(name, systemImage: "folder.fill")
+							}
+							.searchCompletion(suggestion)
+						}
+					}
+				}
+				.onSubmit(of: .search) {
+					onSubmit()
+				}
 		} else {
 			content
 		}
