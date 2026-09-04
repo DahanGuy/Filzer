@@ -478,7 +478,6 @@ struct FileBrowserView: View {
 			}
 		)
 	}
-
 	@ToolbarContentBuilder
 	private var toolbarLeading: some ToolbarContent {
 		ToolbarItem(placement: .navigationBarLeading) {
@@ -546,6 +545,7 @@ struct FileBrowserView: View {
 				Button { showingRecents = true } label: { Image(systemName: "clock") }
 				Button { showingSettings = true } label: { Image(systemName: "gearshape") }
 			}
+			.padding(.horizontal, 4)
 		}
 	}
 
@@ -560,6 +560,7 @@ struct FileBrowserView: View {
 					addMenu
 					locationsMenu
 				}
+				.padding(.horizontal, 4)
 			}
 		}
 	}
