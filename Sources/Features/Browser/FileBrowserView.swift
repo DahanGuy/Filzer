@@ -19,8 +19,9 @@ struct FileBrowserView: View {
 	@State private var isSearchLoading = false
 	@State private var searchTask: Task<Void, Never>?
 	@State private var showingPathNavigator = false
-	@State private var isSearchMode = false
+	@AppStorage("filzer.searchMode") private var isSearchMode: Bool = false
 	@State private var pathQuery = ""
+	@State private var isSearchPresented = false
 	@State private var pathSuggestions: [String] = []
 	@State private var pathSuggestionsTask: Task<Void, Never>?
 
@@ -71,21 +72,34 @@ struct FileBrowserView: View {
 				content
 			}
 		}
-		.searchable(text: isSearchMode ? $searchQuery : $pathQuery, prompt: isSearchMode ? "Search" : rootURL.path)
+		.navigationTitle(displayName ?? rootURL.lastPathComponent)
+		.modifier(FilzerSearchModifier(
+			isSearchMode: isSearchMode,
+			searchQuery: $searchQuery,
+			pathQuery: $pathQuery,
+			isSearchPresented: $isSearchPresented
+		))
 		.modifier(PathSuggestionsModifier(
 			isSearchMode: isSearchMode,
 			pathSuggestions: pathSuggestions,
+			onFill: { suggestion in
+				pathQuery = suggestion
+			},
 			onSubmit: {
 				guard !isSearchMode else { return }
 				let trimmed = pathQuery.trimmingCharacters(in: .whitespaces)
-				guard !trimmed.isEmpty else { return }
-				pathQuery = ""
+				guard !trimmed.isEmpty, trimmed != rootURL.path else { return }
 				navigate(to: URL(fileURLWithPath: trimmed), displayName: nil, chainFromRoot: true)
 			}
 		))
+		.onChange(of: isSearchPresented) { presented in
+			if !presented && !isSearchMode {
+				pathQuery = rootURL.path
+			}
+		}
 		.toolbar { toolbarLeading }
 		.modifier(TrailingToolbarModifier(content: { trailingToolbarContent }, select: { trailingToolbarSelectButtonContent }))
-		.modifier(BottomSearchToolbarModifier(isSearchMode: $isSearchMode, pathQuery: $pathQuery))
+		.modifier(BottomSearchToolbarModifier(isSearchMode: $isSearchMode, pathQuery: $pathQuery, rootPath: rootURL.path))
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -167,6 +181,11 @@ struct FileBrowserView: View {
 			viewModel.sortDescriptor = settings.sortDescriptor
 			await viewModel.reload()
 		}
+		.onAppear {
+			if !isSearchMode && pathQuery.isEmpty {
+				pathQuery = rootURL.path
+			}
+		}
 		.onChange(of: settings.showHiddenFiles) { newValue in
 			viewModel.includeHidden = newValue
 			Task { await viewModel.reload() }
@@ -205,8 +224,6 @@ struct FileBrowserView: View {
 
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		searchQuery = ""
-		pathQuery = ""
-		isSearchMode = false
 		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
 			chain = pathChain(from: root, to: url)
@@ -818,9 +835,29 @@ private struct TrailingToolbarModifier<C: View, S: View>: ViewModifier {
 	}
 }
 
+private struct FilzerSearchModifier: ViewModifier {
+	let isSearchMode: Bool
+	@Binding var searchQuery: String
+	@Binding var pathQuery: String
+	@Binding var isSearchPresented: Bool
+
+	func body(content: Content) -> some View {
+		if #available(iOS 17, *) {
+			content.searchable(
+				text: isSearchMode ? $searchQuery : $pathQuery,
+				isPresented: $isSearchPresented,
+				prompt: isSearchMode ? "Search" : "Path"
+			)
+		} else {
+			content.searchable(text: $searchQuery, prompt: "Search")
+		}
+	}
+}
+
 private struct BottomSearchToolbarModifier: ViewModifier {
 	@Binding var isSearchMode: Bool
 	@Binding var pathQuery: String
+	let rootPath: String
 
 	func body(content: Content) -> some View {
 		if #available(iOS 26, *) {
@@ -830,8 +867,8 @@ private struct BottomSearchToolbarModifier: ViewModifier {
 				ToolbarItem(placement: .bottomBar) {
 					Button {
 						isSearchMode.toggle()
-						if isSearchMode {
-							pathQuery = ""
+						if !isSearchMode {
+							pathQuery = rootPath
 						}
 					} label: {
 						Image(systemName: isSearchMode ? "arrow.forward.to.line" : "magnifyingglass")
@@ -847,6 +884,7 @@ private struct BottomSearchToolbarModifier: ViewModifier {
 private struct PathSuggestionsModifier: ViewModifier {
 	let isSearchMode: Bool
 	let pathSuggestions: [String]
+	let onFill: (String) -> Void
 	let onSubmit: () -> Void
 
 	func body(content: Content) -> some View {
@@ -856,8 +894,11 @@ private struct PathSuggestionsModifier: ViewModifier {
 					if !isSearchMode {
 						ForEach(pathSuggestions, id: \.self) { suggestion in
 							let name = (suggestion as NSString).lastPathComponent
-							Label(name, systemImage: "folder.fill")
-								.searchCompletion(suggestion)
+							Button {
+								onFill(suggestion)
+							} label: {
+								Label(name, systemImage: "folder.fill")
+							}
 						}
 					}
 				}
