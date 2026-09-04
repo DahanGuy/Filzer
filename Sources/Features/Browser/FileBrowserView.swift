@@ -72,7 +72,6 @@ struct FileBrowserView: View {
 		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
 		.toolbar { toolbarTrailing }
-		.toolbar { toolbarTrailingSelect }
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
@@ -490,13 +489,14 @@ struct FileBrowserView: View {
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarContent
 		}
-	}
-
-	@ToolbarContentBuilder
-	private var toolbarTrailingSelect: some ToolbarContent {
+		toolbarSpacerIfAvailable
 		ToolbarItem(placement: .navigationBarTrailing) {
 			trailingToolbarSelectButtonContent
 		}
+	}
+
+	private var toolbarSpacerIfAvailable: some ToolbarContent {
+		ToolbarSpacerCompat()
 	}
 
 	@ViewBuilder
@@ -794,6 +794,16 @@ private final class ResolverViewController: UIViewController {
 		super.viewDidAppear(animated)
 		if let navigationController {
 			onResolve?(navigationController)
+		}
+	}
+}
+
+struct ToolbarSpacerCompat: ToolbarContent {
+	var body: some ToolbarContent {
+		if #available(iOS 26, *) {
+			ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+		} else {
+			ToolbarItem(placement: .navigationBarTrailing) { Spacer() }
 		}
 	}
 }
