@@ -71,14 +71,7 @@ struct FileBrowserView: View {
 		.navigationTitle(displayName ?? rootURL.lastPathComponent)
 		.searchable(text: $searchQuery, prompt: "Search")
 		.toolbar { toolbarLeading }
-		.toolbar {
-			ToolbarItem(placement: .primaryAction) {
-				trailingToolbarContent
-			}
-			ToolbarItem(placement: .confirmationAction) {
-				trailingToolbarSelectButtonContent
-			}
-		}
+		.modifier(TrailingToolbarModifier(content: { trailingToolbarContent }, select: { trailingToolbarSelectButtonContent }))
 		.safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
@@ -492,6 +485,7 @@ struct FileBrowserView: View {
 	}
 
 
+
 	@ViewBuilder
 	private var bottomBar: some View {
 		if viewModel.isSelecting {
@@ -787,6 +781,26 @@ private final class ResolverViewController: UIViewController {
 		super.viewDidAppear(animated)
 		if let navigationController {
 			onResolve?(navigationController)
+		}
+	}
+}
+
+private struct TrailingToolbarModifier<C: View, S: View>: ViewModifier {
+	@ViewBuilder var content: () -> C
+	@ViewBuilder var select: () -> S
+
+	func body(content view: Content) -> some View {
+		if #available(iOS 26, *) {
+			view.toolbar {
+				ToolbarItem(placement: .navigationBarTrailing) { content() }
+				ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+				ToolbarItem(placement: .navigationBarTrailing) { select() }
+			}
+		} else {
+			view.toolbar {
+				ToolbarItem(placement: .navigationBarTrailing) { content() }
+				ToolbarItem(placement: .navigationBarTrailing) { select() }
+			}
 		}
 	}
 }
