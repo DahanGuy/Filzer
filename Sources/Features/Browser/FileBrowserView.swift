@@ -19,7 +19,7 @@ struct FileBrowserView: View {
 	@State private var isSearchLoading = false
 	@State private var searchTask: Task<Void, Never>?
 	@State private var showingPathNavigator = false
-	@State private var isPathMode = false
+	@State private var isSearchMode = false
 	@State private var pathQuery = ""
 	@State private var pathSuggestions: [String] = []
 	@State private var pathSuggestionsTask: Task<Void, Never>?
@@ -61,7 +61,7 @@ struct FileBrowserView: View {
 
 	var body: some View {
 		Group {
-			if isSearchActive {
+			if isSearchActive && isSearchMode {
 				searchResultsContent
 			} else if viewModel.isLoading && viewModel.nodes.isEmpty {
 				ProgressView()
@@ -71,27 +71,21 @@ struct FileBrowserView: View {
 				content
 			}
 		}
-		.searchable(text: isPathMode ? $pathQuery : $searchQuery, prompt: isPathMode ? "Path" : "Search")
+		.searchable(text: isSearchMode ? $searchQuery : $pathQuery, prompt: isSearchMode ? "Search" : rootURL.path)
 		.modifier(PathSuggestionsModifier(
-			isPathMode: isPathMode,
+			isSearchMode: isSearchMode,
 			pathSuggestions: pathSuggestions,
-			onSelect: { suggestion in
-				navigate(to: URL(fileURLWithPath: suggestion), displayName: nil)
-				isPathMode = false
-				pathQuery = ""
-			},
 			onSubmit: {
-				guard isPathMode else { return }
+				guard !isSearchMode else { return }
 				let trimmed = pathQuery.trimmingCharacters(in: .whitespaces)
 				guard !trimmed.isEmpty else { return }
-				navigate(to: URL(fileURLWithPath: trimmed), displayName: nil)
-				isPathMode = false
 				pathQuery = ""
+				navigate(to: URL(fileURLWithPath: trimmed), displayName: nil, chainFromRoot: true)
 			}
 		))
 		.toolbar { toolbarLeading }
 		.modifier(TrailingToolbarModifier(content: { trailingToolbarContent }, select: { trailingToolbarSelectButtonContent }))
-		.modifier(BottomSearchToolbarModifier(isPathMode: $isPathMode, pathQuery: $pathQuery, rootPath: rootURL.path))
+		.modifier(BottomSearchToolbarModifier(isSearchMode: $isSearchMode, pathQuery: $pathQuery))
 		.background(navigationLinks)
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
@@ -211,6 +205,8 @@ struct FileBrowserView: View {
 
 	private func navigate(to url: URL, displayName: String?, chainFromRoot: Bool = false) {
 		searchQuery = ""
+		pathQuery = ""
+		isSearchMode = false
 		var chain: [URL]
 		if chainFromRoot, let root = reachableRoot(containing: url), !isAddedFolderOrRemoteRoot(root) {
 			chain = pathChain(from: root, to: url)
@@ -823,9 +819,8 @@ private struct TrailingToolbarModifier<C: View, S: View>: ViewModifier {
 }
 
 private struct BottomSearchToolbarModifier: ViewModifier {
-	@Binding var isPathMode: Bool
+	@Binding var isSearchMode: Bool
 	@Binding var pathQuery: String
-	let rootPath: String
 
 	func body(content: Content) -> some View {
 		if #available(iOS 26, *) {
@@ -834,14 +829,12 @@ private struct BottomSearchToolbarModifier: ViewModifier {
 				ToolbarSpacer(.flexible, placement: .bottomBar)
 				ToolbarItem(placement: .bottomBar) {
 					Button {
-						isPathMode.toggle()
-						if isPathMode {
-							pathQuery = rootPath
-						} else {
+						isSearchMode.toggle()
+						if isSearchMode {
 							pathQuery = ""
 						}
 					} label: {
-						Image(systemName: isPathMode ? "magnifyingglass" : "arrow.forward.to.line")
+						Image(systemName: isSearchMode ? "arrow.forward.to.line" : "magnifyingglass")
 					}
 				}
 			}
@@ -852,24 +845,19 @@ private struct BottomSearchToolbarModifier: ViewModifier {
 }
 
 private struct PathSuggestionsModifier: ViewModifier {
-	let isPathMode: Bool
+	let isSearchMode: Bool
 	let pathSuggestions: [String]
-	let onSelect: (String) -> Void
 	let onSubmit: () -> Void
 
 	func body(content: Content) -> some View {
 		if #available(iOS 16, *) {
 			content
 				.searchSuggestions {
-					if isPathMode {
+					if !isSearchMode {
 						ForEach(pathSuggestions, id: \.self) { suggestion in
 							let name = (suggestion as NSString).lastPathComponent
-							Button {
-								onSelect(suggestion)
-							} label: {
-								Label(name, systemImage: "folder.fill")
-							}
-							.searchCompletion(suggestion)
+							Label(name, systemImage: "folder.fill")
+								.searchCompletion(suggestion)
 						}
 					}
 				}
