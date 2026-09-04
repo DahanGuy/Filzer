@@ -792,14 +792,14 @@ private struct TrailingToolbarModifier<C: View, S: View>: ViewModifier {
 	func body(content view: Content) -> some View {
 		if #available(iOS 26, *) {
 			view.toolbar {
-				ToolbarItem(placement: .navigationBarTrailing) { content() }
-				ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
 				ToolbarItem(placement: .navigationBarTrailing) { select() }
+				ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+				ToolbarItem(placement: .navigationBarTrailing) { content() }
 			}
 		} else {
 			view.toolbar {
-				ToolbarItem(placement: .navigationBarTrailing) { content() }
 				ToolbarItem(placement: .navigationBarTrailing) { select() }
+				ToolbarItem(placement: .navigationBarTrailing) { content() }
 			}
 		}
 	}
