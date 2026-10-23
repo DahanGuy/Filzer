@@ -21,13 +21,15 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 - **Image Viewer** - Image displaying and metadata
 - **Media Player** - Audio/video playback and metadata
 - **SQLite Viewer** - Browse tables and run SQL queries
-- **IPA Inspector** - App icon, bundle ID, version, minimum iOS and extract or browse contents
+- **IPA / TIPA Inspector** - App icon, bundle ID, version, minimum iOS and extract or browse contents, plus an Install App button when TrollStore is installed
+- **.deb Inspector** - Control info, scripts and file list of .deb packages, tells iOS tweaks apart from regular Debian packages and has an Install with Sileo button when Sileo is installed (gzip, xz, bzip2 and lzma packages only, zstd isn't supported yet)
 - **Provisioning Profile Viewer** - Profile details, validity, devices and entitlements
 - **Web Viewer** - uses WebKit to display HTML files
 - **Network Locations** - WebDAV, FTP/FTPS and SMB file shares, and Dropbox, Google Drive and OneDrive as Cloud Network Locations
 - **Biometric Lock** - Face ID / Touch ID or Passcode app lock
 - **Permissions Editor** - set read/write or execute permissions for owner, group and others.
 - **Root Access** (TrollStore and .deb builds) - file operations run as root, falling back to regular (mobile) access if root isn't available
+- **URL Scheme** - `filzer://` opens folders and files from other apps, see [below](#url-scheme)
 
 ## Requirements
 
@@ -38,7 +40,28 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 
 The app itself always runs as `mobile`, so for these builds it launches a second copy of its own executable as root (using the `com.apple.private.persona-mgmt` entitlement) to read and edit protected folders. If that doesn't work, Filzer uses regular (mobile) access instead. It can be turned off in Settings > General > Run as Root.
 
-Nothing extra needs packaging, the app just has to be signed with `Resources/Filzer.entitlements` (the CI workflow does this for the `.tipa`).
+Nothing extra needs packaging, the app just has to be signed with `Resources/Filzer.entitlements` (the CI workflow does this for the `.tipa` and the `.deb` files).
+
+The CI workflow builds these installable packages:
+
+- `Filzer.tipa` - install with TrollStore
+- `Filzer-rootful.deb` - for rootful jailbreaks, installs to `/Applications`
+- `Filzer-rootless.deb` - for rootless jailbreaks, installs to `/var/jb/Applications`
+
+Install a `.deb` with Sileo, Zebra or `dpkg -i`, its post-install script runs `uicache` to register the app.
+
+## URL Scheme
+
+Other apps and Shortcuts can open Filzer at a path with `filzer://`:
+
+| URL | Action |
+| --- | --- |
+| `filzer://open/var/mobile` | Go to a folder, or open a file in its default viewer |
+| `filzer://view/var/mobile/file.bin?viewer=hex` | Open a file in a specific viewer |
+| `filzer://hex/var/mobile/file.bin` | Same as above, with the viewer as the host (`text`, `hex`, `image`, `media`, `web`, `plist`, `sqlite`, `archive`, `quickLook`, `ipa`, `deb`, `mobileProvision`) |
+| `filzer://info/var/mobile/file.bin` | Show a file's info sheet |
+
+Paths can also be passed as `?path=/var/mobile`. Opening a file also moves the browser to the folder it's in.
 
 ## TODO
 
