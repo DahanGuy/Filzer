@@ -97,7 +97,11 @@ extension FileSystemEngine {
 	}
 
 	func materializeLocally(_ url: URL) async throws -> (url: URL, isTemporary: Bool) {
-		guard RemoteURL.isRemote(url) else { return (url, false) }
+		if !RemoteURL.isRemote(url) {
+			guard !FileManager.default.isReadableFile(atPath: url.path), await RootAccess.shared.activeClient() != nil else {
+				return (url, false)
+			}
+		}
 		let data = try await readFile(at: url)
 		let scratchDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
 		try FileManager.default.createDirectory(at: scratchDirectory, withIntermediateDirectories: true)
