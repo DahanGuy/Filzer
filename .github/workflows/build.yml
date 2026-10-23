@@ -3,12 +3,15 @@ name: Build
 on:
   push:
     branches: [master, main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -120,3 +123,14 @@ jobs:
         with:
           name: Filzer-rootless-deb
           path: Filzer-rootless.deb
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            Filzer.ipa Filzer.tipa Filzer-rootful.deb Filzer-rootless.deb \
+            --title "Filzer $version" \
+            --notes "Filzer.ipa is the unsigned IPA, Filzer.tipa is for TrollStore, and the two .deb files are for rootful and rootless jailbreaks."
