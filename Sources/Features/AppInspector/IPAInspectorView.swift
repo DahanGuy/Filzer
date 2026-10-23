@@ -78,7 +78,8 @@ struct IPAInspectorView: View {
 
 	private func install() {
 		Task {
-			if await !TrollStoreInstaller.install(url) {
+			let opened = await TrollStoreInstaller.install(url)
+			if !opened {
 				installError = "Couldn't open TrollStore."
 			}
 		}

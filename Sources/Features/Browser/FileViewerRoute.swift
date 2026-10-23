@@ -57,6 +57,7 @@ struct FileViewerRoute: View {
 		case .archive: ArchiveBrowserView(url: url)
 		case .quickLook: QuickLookView(url: url)
 		case .ipa: IPAInspectorView(url: url)
+		case .deb: DebInspectorView(url: url)
 		case .mobileProvision: MobileProvisionView(url: url)
 		}
 	}
