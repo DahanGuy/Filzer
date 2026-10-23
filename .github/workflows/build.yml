@@ -6,9 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      release_version:
-        description: Version to publish as a GitHub release, such as 1.1. Leave empty to only build.
-        required: false
+      nightly:
+        description: Publish this build as the nightly release, replacing the previous one
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -127,14 +128,15 @@ jobs:
           name: Filzer-rootless-deb
           path: Filzer-rootless.deb
 
-      - name: Publish release
-        if: inputs.release_version != ''
+      - name: Publish nightly release
+        if: inputs.nightly
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.release_version }}
         run: |
-          gh release create "v$VERSION" \
+          gh release delete nightly --cleanup-tag --yes || true
+          gh release create nightly \
             Filzer.ipa Filzer.tipa Filzer-rootful.deb Filzer-rootless.deb \
+            --prerelease \
             --target "$GITHUB_SHA" \
-            --title "Filzer $VERSION" \
-            --notes "Filzer.ipa is the unsigned IPA, Filzer.tipa is for TrollStore, and the two .deb files are for rootful and rootless jailbreaks."
+            --title "Nightly" \
+            --notes "Built from commit $GITHUB_SHA. The next nightly replaces this one."
