@@ -102,6 +102,9 @@ struct FileBrowserView: View {
 			}
 		))
 		.background(navigationLinks)
+		.modifier(URLFolderRequestModifier(isRoot: isRoot) { url in
+			navigate(to: url, displayName: nil, chainFromRoot: true)
+		})
 		.sheet(item: $infoNode) { node in
 			NavigationView { FileInfoView(node: node) }
 				.navigationViewStyle(.stack)

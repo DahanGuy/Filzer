@@ -35,6 +35,14 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
+			<string>com.guy.filzer.url</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>filzer</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
 			<string>com.guy.filzer.oauth.dropbox</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
