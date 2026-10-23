@@ -3,9 +3,12 @@ name: Build
 on:
   push:
     branches: [master, main]
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Version to publish as a GitHub release, such as 1.1. Leave empty to only build.
+        required: false
 
 jobs:
   build:
@@ -125,12 +128,13 @@ jobs:
           path: Filzer-rootless.deb
 
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: inputs.release_version != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.release_version }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "v$VERSION" \
             Filzer.ipa Filzer.tipa Filzer-rootful.deb Filzer-rootless.deb \
-            --title "Filzer $version" \
+            --target "$GITHUB_SHA" \
+            --title "Filzer $VERSION" \
             --notes "Filzer.ipa is the unsigned IPA, Filzer.tipa is for TrollStore, and the two .deb files are for rootful and rootless jailbreaks."
