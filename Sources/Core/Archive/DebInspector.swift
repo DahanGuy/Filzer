@@ -7,26 +7,6 @@ struct DebField: Identifiable {
 	var id: String { key }
 }
 
-struct DebFileEntry: Identifiable {
-	let path: String
-	let isDirectory: Bool
-	let isSymbolicLink: Bool
-	let size: Int64
-
-	var id: String { path }
-
-	var name: String {
-		let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
-		return trimmed.split(separator: "/").last.map { String($0) } ?? trimmed
-	}
-
-	var parentPath: String {
-		let trimmed = path.hasSuffix("/") ? String(path.dropLast()) : path
-		guard let slash = trimmed.lastIndex(of: "/") else { return "/" }
-		return "/" + trimmed[..<slash]
-	}
-}
-
 struct DebSummary {
 	let fields: [DebField]
 	let maintainerScripts: [String]
@@ -62,7 +42,7 @@ enum DebInspector {
 			case .missingControl: return "This package's control information couldn't be read."
 			case .missingData: return "This package has no data archive."
 			case .unsupportedCompression(let name): return "This package is compressed with \(name), which Filzer can't read yet."
-			case .contentsTooLarge: return "This package is too large to list its contents."
+			case .contentsTooLarge: return "This package is too large to open."
 			}
 		}
 	}
@@ -73,7 +53,7 @@ enum DebInspector {
 	}
 
 	private static let classificationSizeLimit = 16 * 1024 * 1024
-	private static let listingSizeLimit = 64 * 1024 * 1024
+	private static let dataSizeLimit = 128 * 1024 * 1024
 	private static let maintainerScriptNames = ["preinst", "postinst", "prerm", "postrm"]
 
 	static func summarize(debURL: URL) async throws -> DebSummary {
@@ -82,14 +62,12 @@ enum DebInspector {
 		}.value
 	}
 
-	static func listContents(debURL: URL) async throws -> [DebFileEntry] {
-		try await Task.detached(priority: .userInitiated) { () throws -> [DebFileEntry] in
-			let archive = try Data(contentsOf: debURL, options: .alwaysMapped)
-			let members = try arMembers(in: archive)
-			guard let dataMember = members.first(where: { $0.name.hasPrefix("data.tar") }) else { throw InspectorError.missingData }
-			guard dataMember.range.count <= listingSizeLimit else { throw InspectorError.contentsTooLarge }
-			return try listEntries(of: dataMember, in: archive)
-		}.value
+	/// The decompressed `data.tar` of a package, for the archive browser.
+	static func dataTar(of debURL: URL) throws -> Data {
+		let archive = try Data(contentsOf: debURL, options: .alwaysMapped)
+		guard let dataMember = try arMembers(in: archive).first(where: { $0.name.hasPrefix("data.tar") }) else { throw InspectorError.missingData }
+		guard dataMember.range.count <= dataSizeLimit else { throw InspectorError.contentsTooLarge }
+		return try decompress(dataMember, in: archive)
 	}
 
 	private static func loadSummary(_ debURL: URL) throws -> DebSummary {
@@ -115,9 +93,9 @@ enum DebInspector {
 		if
 			let dataMember = members.first(where: { $0.name.hasPrefix("data.tar") }),
 			dataMember.range.count <= classificationSizeLimit,
-			let entries = try? listEntries(of: dataMember, in: archive)
+			let paths = try? listPaths(of: dataMember, in: archive)
 		{
-			dataPaths = entries.map(\.path)
+			dataPaths = paths
 		}
 
 		let classification = classify(fields: fields, dataPaths: dataPaths)
@@ -131,18 +109,10 @@ enum DebInspector {
 		)
 	}
 
-	private static func listEntries(of member: ArMember, in archive: Data) throws -> [DebFileEntry] {
-		let tar = try decompress(member, in: archive)
-		return try TarContainer.info(container: tar)
-			.map { info in
-				DebFileEntry(
-					path: normalized(info.name),
-					isDirectory: info.type == .directory,
-					isSymbolicLink: info.type == .symbolicLink,
-					size: Int64(info.size ?? 0)
-				)
-			}
-			.filter { !$0.path.isEmpty }
+	private static func listPaths(of member: ArMember, in archive: Data) throws -> [String] {
+		try TarContainer.info(container: decompress(member, in: archive))
+			.map { normalized($0.name) }
+			.filter { !$0.isEmpty }
 	}
 
 	// MARK: ar container
@@ -270,7 +240,7 @@ enum DebInspector {
 		return (true, "iOS" + scheme, kind)
 	}
 
-	private static func normalized(_ path: String) -> String {
+	static func normalized(_ path: String) -> String {
 		var result = Substring(path)
 		while result.hasPrefix("./") { result = result.dropFirst(2) }
 		while result.hasPrefix("/") { result = result.dropFirst() }

@@ -76,8 +76,16 @@ struct SWCompressionArchiveService: ArchiveService {
 	}
 
 	private func rawEntries(of archive: URL) throws -> [RawEntry] {
+		let format = ArchiveFormat.detect(from: archive)
+		if format == .deb {
+			return try TarContainer.open(container: DebInspector.dataTar(of: archive)).compactMap { (entry) -> RawEntry? in
+				let name = DebInspector.normalized(entry.info.name)
+				guard !name.isEmpty else { return nil }
+				return RawEntry(name: name, isDirectory: entry.info.type == .directory, size: Int(entry.info.size ?? 0), data: entry.data)
+			}
+		}
 		let raw = try Data(contentsOf: archive)
-		switch ArchiveFormat.detect(from: archive) {
+		switch format {
 		case .tar:
 			return try TarContainer.open(container: raw).map {
 				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
@@ -105,7 +113,7 @@ struct SWCompressionArchiveService: ArchiveService {
 			return try SevenZipContainer.open(container: raw).map {
 				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
 			}
-		case .zip, .rar:
+		case .zip, .rar, .deb:
 			throw FileSystemError.unsupported("This archive format isn't handled by SWCompressionArchiveService.")
 		}
 	}

@@ -76,7 +76,7 @@ struct DebInspectorView: View {
 	private func installSection(isIOSPackage: Bool) -> some View {
 		if canInstall {
 			if isIOSPackage {
-				Section(footer: Text("Choose Sileo in the share menu to install this package.")) {
+				Section(footer: Text("Choose Sileo in the share sheet to install this package.")) {
 					Button { installWithSileo() } label: {
 						Label("Install with Sileo", systemImage: "square.and.arrow.down")
 					}
@@ -93,7 +93,7 @@ struct DebInspectorView: View {
 
 	private var browseSection: some View {
 		Section {
-			NavigationLink(destination: DebContentsView(url: url)) {
+			NavigationLink(destination: ArchiveBrowserView(url: url)) {
 				NavigationLabel(text: "Browse Contents", icon: "archivebox")
 			}
 		}
@@ -136,76 +136,13 @@ struct DebInspectorView: View {
 
 	private func installWithSileo() {
 		if !SileoInstaller.install(url) {
-			installError = "No app on this device can open .deb files."
+			installError = "Couldn't open the share sheet."
 		}
 	}
 
 	private func load() async {
 		do {
 			summary = try await DebInspector.summarize(debURL: url)
-		} catch {
-			errorMessage = error.localizedDescription
-		}
-		isLoading = false
-	}
-}
-
-struct DebContentsView: View {
-	let url: URL
-
-	@State private var entries: [DebFileEntry] = []
-	@State private var errorMessage: String?
-	@State private var isLoading = true
-	@State private var searchText = ""
-
-	private var filteredEntries: [DebFileEntry] {
-		searchText.isEmpty ? entries : entries.filter { $0.path.localizedCaseInsensitiveContains(searchText) }
-	}
-
-	var body: some View {
-		Group {
-			if isLoading {
-				ProgressView()
-			} else if let errorMessage {
-				EmptyStateView(icon: "exclamationmark.triangle", title: "Couldn't List Contents", message: errorMessage)
-			} else {
-				List(filteredEntries) { entry in
-					HStack(spacing: 12) {
-						Image(systemName: icon(for: entry))
-							.foregroundStyle(.secondary)
-							.frame(width: 24)
-						VStack(alignment: .leading, spacing: 2) {
-							Text(entry.name)
-							Text(entry.parentPath)
-								.font(.caption)
-								.foregroundStyle(.secondary)
-								.lineLimit(1)
-								.truncationMode(.head)
-						}
-						Spacer()
-						if !entry.isDirectory {
-							Text(ByteCountFormat.string(for: entry.size))
-								.font(.caption)
-								.foregroundStyle(.secondary)
-						}
-					}
-				}
-				.searchable(text: $searchText)
-			}
-		}
-		.navigationTitle("Contents")
-		.task { await load() }
-	}
-
-	private func icon(for entry: DebFileEntry) -> String {
-		if entry.isDirectory { return "folder" }
-		if entry.isSymbolicLink { return "link" }
-		return "doc"
-	}
-
-	private func load() async {
-		do {
-			entries = try await DebInspector.listContents(debURL: url)
 		} catch {
 			errorMessage = error.localizedDescription
 		}

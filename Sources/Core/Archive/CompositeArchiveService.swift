@@ -11,7 +11,7 @@ struct CompositeArchiveService: ArchiveService {
 			try zip.compress(urls, to: destination)
 		case .tar, .tarGz, .tarBz2:
 			try swCompression.compress(urls, to: destination)
-		case .rar, .gzip, .bzip2, .xz, .sevenZip:
+		case .rar, .gzip, .bzip2, .xz, .sevenZip, .deb:
 			throw FileSystemError.unsupported("Filzer can't create .\(ArchiveFormat.detect(from: destination).fileExtension) archives.")
 		}
 	}
@@ -32,7 +32,7 @@ struct CompositeArchiveService: ArchiveService {
 		switch ArchiveFormat.detect(from: archive) {
 		case .zip: return zip
 		case .rar: return rar
-		case .tar, .tarGz, .tarBz2, .gzip, .bzip2, .xz, .sevenZip: return swCompression
+		case .tar, .tarGz, .tarBz2, .gzip, .bzip2, .xz, .sevenZip, .deb: return swCompression
 		}
 	}
 }

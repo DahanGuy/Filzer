@@ -22,7 +22,7 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 - **Media Player** - Audio/video playback and metadata
 - **SQLite Viewer** - Browse tables and run SQL queries
 - **IPA / TIPA Inspector** - App icon, bundle ID, version, minimum iOS and extract or browse contents, plus an Install App button when TrollStore is installed
-- **.deb Inspector** - Control info, scripts and file list of .deb packages, tells iOS tweaks apart from regular Debian packages and has an Install with Sileo button when Sileo is installed (gzip, xz, bzip2 and lzma packages only, zstd isn't supported yet)
+- **.deb Inspector** - Control info, scripts and browsable contents (with Extract All) of .deb packages, tells iOS tweaks apart from regular Debian packages and has an Install with Sileo button when Sileo is installed (gzip, xz, bzip2 and lzma packages only, zstd isn't supported yet)
 - **Provisioning Profile Viewer** - Profile details, validity, devices and entitlements
 - **Web Viewer** - uses WebKit to display HTML files
 - **Network Locations** - WebDAV, FTP/FTPS and SMB file shares, and Dropbox, Google Drive and OneDrive as Cloud Network Locations
