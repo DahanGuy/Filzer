@@ -56,7 +56,7 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 
 	static func defaultViewer(for node: FileNode) -> ViewerKind {
 		let extensionLowercased = node.pathExtension.lowercased()
-		if extensionLowercased == "ipa" { return .ipa }
+		if extensionLowercased == "ipa" || extensionLowercased == "tipa" { return .ipa }
 		if extensionLowercased == "mobileprovision" { return .mobileProvision }
 		switch FileClassifier.category(for: node) {
 		case .folder, .symbolicLink: return .quickLook
