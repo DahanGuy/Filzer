@@ -1,7 +1,6 @@
 import Foundation
 
 enum RootAccessStatus: Equatable {
-	case notBundled
 	case disabled
 	case active
 	case unavailable(String)
@@ -19,19 +18,12 @@ final class RootAccess: @unchecked Sendable {
 	private let lock = NSLock()
 	private var probeResult: ProbeResult?
 
-	var helperPath: String? {
-		let path = (Bundle.main.bundlePath as NSString).appendingPathComponent(RootHelperProtocol.executableName)
-		return FileManager.default.isExecutableFile(atPath: path) ? path : nil
-	}
-
-	var isHelperBundled: Bool { helperPath != nil }
-
 	var isEnabled: Bool {
 		UserDefaults.standard.object(forKey: Self.enabledDefaultsKey) as? Bool ?? true
 	}
 
 	func activeClient() async -> RootHelperClient? {
-		guard isEnabled, let path = helperPath else { return nil }
+		guard isEnabled, let path = Bundle.main.executablePath else { return nil }
 		let result: ProbeResult
 		if let cached = cachedProbeResult() {
 			result = cached
@@ -44,11 +36,10 @@ final class RootAccess: @unchecked Sendable {
 	}
 
 	func status() async -> RootAccessStatus {
-		guard helperPath != nil else { return .notBundled }
 		guard isEnabled else { return .disabled }
 		if await activeClient() != nil { return .active }
 		if case .failed(let reason)? = cachedProbeResult() { return .unavailable(reason) }
-		return .unavailable("The root helper didn't start.")
+		return .unavailable("Filzer couldn't find its own executable.")
 	}
 
 	func markUnavailable(_ reason: String) {
@@ -76,7 +67,7 @@ final class RootAccess: @unchecked Sendable {
 	private func probe(_ path: String) async -> ProbeResult {
 		do {
 			let isRoot = try await RootHelperClient(executablePath: path).ping()
-			return isRoot ? .ready : .failed("The helper started, but not with root privileges.")
+			return isRoot ? .ready : .failed("Filzer started, but not with root privileges.")
 		} catch RootHelperError.launchFailed(let reason) {
 			return .failed(reason)
 		} catch {

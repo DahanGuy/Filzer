@@ -1,6 +1,5 @@
 import SwiftUI
 
-@main
 struct FilzerApp: App {
 	@StateObject private var settings = SettingsStore()
 	@StateObject private var bookmarks = BookmarksStore()

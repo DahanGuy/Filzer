@@ -13,7 +13,7 @@ struct GeneralSettingsView: View {
 			return "Root access isn't available, so Filzer is using regular (mobile) access. \(reason)"
 		case .disabled?:
 			return "Filzer is using regular (mobile) access."
-		case .notBundled?, nil:
+		case nil:
 			return "When enabled, Filzer runs file operations as root for access to protected folders. If root isn't available it falls back to regular (mobile) access."
 		}
 	}
@@ -35,13 +35,11 @@ struct GeneralSettingsView: View {
 				PlainToggle(text: "Search Subfolders", icon: "arrow.triangle.branch", isOn: $settings.recursiveSearch)
 			}
 
-			if RootAccess.shared.isHelperBundled {
-				Section(
-					header: HeaderLabel(text: "Privileges", icon: "lock.open"),
-					footer: Text(rootAccessFooter)
-				) {
-					PlainToggle(text: "Run as Root", icon: "lock.open", isOn: $settings.useRootAccess)
-				}
+			Section(
+				header: HeaderLabel(text: "Privileges", icon: "lock.open"),
+				footer: Text(rootAccessFooter)
+			) {
+				PlainToggle(text: "Run as Root", icon: "lock.open", isOn: $settings.useRootAccess)
 			}
 		}
 		.task(id: settings.useRootAccess) {

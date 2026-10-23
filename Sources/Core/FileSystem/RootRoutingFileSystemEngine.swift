@@ -53,18 +53,16 @@ final class RootRoutingFileSystemEngine: FileSystemEngine {
 			return .node(try await client.stat(url))
 
 		case .createDirectory(let url):
-			try await client.makeDirectory(url)
-			return .node(try await client.stat(url))
+			return .node(try await client.makeDirectory(url))
 
 		case .createFile(let url, let contents):
-			try await client.write(contents, to: url, createNew: true)
-			return .node(try await client.stat(url))
+			return .node(try await client.createFile(contents, at: url))
 
 		case .readFile(let url):
 			return .data(try await client.read(url))
 
 		case .writeFile(let url, let data):
-			try await client.write(data, to: url, createNew: false)
+			try await client.replaceFile(data, at: url)
 			return .done
 
 		case .delete(let urls):
@@ -82,16 +80,13 @@ final class RootRoutingFileSystemEngine: FileSystemEngine {
 			if destination.path == url.path {
 				return .node(try await client.stat(url))
 			}
-			try await client.move(from: url, to: destination)
-			return .node(try await client.stat(destination))
+			return .node(try await client.move(from: url, to: destination))
 
 		case .copyItem(let source, let destination):
-			try await client.copy(from: source, to: destination)
-			return .node(try await client.stat(destination))
+			return .node(try await client.copy(from: source, to: destination))
 
 		case .moveItem(let source, let destination):
-			try await client.move(from: source, to: destination)
-			return .node(try await client.stat(destination))
+			return .node(try await client.move(from: source, to: destination))
 
 		case .copyItems(let sources, let directory):
 			for source in sources {
@@ -106,12 +101,10 @@ final class RootRoutingFileSystemEngine: FileSystemEngine {
 			return .done
 
 		case .createSymbolicLink(let url, let destination):
-			try await client.makeSymbolicLink(at: url, destination: destination)
-			return .node(try await client.stat(url))
+			return .node(try await client.makeSymbolicLink(at: url, destination: destination))
 
 		case .createHardLink(let url, let destination):
-			try await client.makeHardLink(at: url, destination: destination)
-			return .node(try await client.stat(url))
+			return .node(try await client.makeHardLink(at: url, destination: destination))
 
 		case .setPermissions(let urls, let posixPermissions, let recursive):
 			for url in urls {
