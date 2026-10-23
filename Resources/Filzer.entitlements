@@ -16,6 +16,11 @@
 	<true/>
 	<key>com.apple.private.security.container-manager</key>
 	<true/>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>IOSurfaceRootUserClient</string>
+		<string>AGXDeviceUserClient</string>
+	</array>
 	<key>com.apple.security.exception.files.absolute-path.read-write</key>
 	<array>
 		<string>/</string>
