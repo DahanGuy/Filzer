@@ -64,9 +64,9 @@ jobs:
       - name: Package .deb (rootful and rootless)
         run: |
           app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
-          for framework in "$app_path"/Frameworks/*.framework; do
-            if [ -d "$framework" ]; then
-              ldid -S "$framework/$(basename "$framework" .framework)"
+          find "$app_path" -type f ! -path "$app_path/Filzer" | while read -r file; do
+            if file "$file" | grep -q "Mach-O"; then
+              ldid -S "$file"
             fi
           done
 
