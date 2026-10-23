@@ -58,14 +58,19 @@ jobs:
         run: |
           app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
           plutil -lint Resources/Filzer.entitlements
-          ldid -SResources/Filzer.entitlements "$app_path/Filzer"
-          signed_entitlements="$(ldid -e "$app_path/Filzer")"
-          echo "$signed_entitlements"
-          for key in platform-application \
-                     com.apple.private.security.no-sandbox \
-                     com.apple.private.security.storage.AppDataContainers \
-                     com.apple.private.persona-mgmt; do
-            echo "$signed_entitlements" | grep -q "<key>$key</key>" || { echo "::error::Missing entitlement $key in signed binary"; exit 1; }
+          bash scripts/build-root-helper.sh build/FilzerRootHelper iphoneos
+          cp build/FilzerRootHelper "$app_path/FilzerRootHelper"
+          for binary in Filzer FilzerRootHelper; do
+            ldid -SResources/Filzer.entitlements "$app_path/$binary"
+            signed_entitlements="$(ldid -e "$app_path/$binary")"
+            echo "$binary:"
+            echo "$signed_entitlements"
+            for key in platform-application \
+                       com.apple.private.security.no-sandbox \
+                       com.apple.private.security.storage.AppDataContainers \
+                       com.apple.private.persona-mgmt; do
+              echo "$signed_entitlements" | grep -q "<key>$key</key>" || { echo "::error::Missing entitlement $key in $binary"; exit 1; }
+            done
           done
           mkdir -p Payload-TS/Payload
           cp -r "$app_path" Payload-TS/Payload/

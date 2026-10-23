@@ -27,11 +27,20 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 - **Network Locations** - WebDAV, FTP/FTPS and SMB file shares, and Dropbox, Google Drive and OneDrive as Cloud Network Locations
 - **Biometric Lock** - Face ID / Touch ID or Passcode app lock
 - **Permissions Editor** - set read/write or execute permissions for owner, group and others.
+- **Root Access** (TrollStore and .deb builds) - file operations run as root through a bundled helper, falling back to regular (mobile) access if root isn't available
 
 ## Requirements
 
 - Xcode 13+ (with iOS/iPadOS SDK)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+
+## TrollStore and .deb builds
+
+These builds bundle `FilzerRootHelper`, a small command-line tool that Filzer spawns as root (using the `com.apple.private.persona-mgmt` entitlement) to read and edit protected folders. If the helper is missing or can't start as root, Filzer uses regular (mobile) access instead. It can be turned off in Settings > General > Run as Root.
+
+To package it, build the helper with `scripts/build-root-helper.sh <output> iphoneos`, then sign both it and the app with `Resources/Filzer.entitlements` using ldid and place it next to the app executable. The CI workflow does this for the `.tipa`.
+
+On a Mac, `scripts/build-root-helper.sh build/helper` followed by `scripts/test-root-helper.sh build/helper` tests the helper's file operations.
 
 ## TODO
 
