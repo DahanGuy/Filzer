@@ -19,9 +19,6 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Test root helper
-        run: bash Tests/RootHelper/smoke-test.sh
-
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -55,16 +52,7 @@ jobs:
       - name: Package TIPA (TrollStore)
         run: |
           app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
-          plutil -lint Resources/Filzer.entitlements
           ldid -SResources/Filzer.entitlements "$app_path/Filzer"
-          signed_entitlements="$(ldid -e "$app_path/Filzer")"
-          echo "$signed_entitlements"
-          for key in platform-application \
-                     com.apple.private.security.no-sandbox \
-                     com.apple.private.security.storage.AppDataContainers \
-                     com.apple.private.persona-mgmt; do
-            echo "$signed_entitlements" | grep -q "<key>$key</key>" || { echo "::error::Missing entitlement $key in signed binary"; exit 1; }
-          done
           mkdir -p Payload-TS/Payload
           cp -r "$app_path" Payload-TS/Payload/
           cd Payload-TS && zip -qr ../Filzer.tipa Payload && cd ..

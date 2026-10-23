@@ -38,7 +38,7 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 
 The app itself always runs as `mobile`, so for these builds it launches a second copy of its own executable as root (using the `com.apple.private.persona-mgmt` entitlement) to read and edit protected folders. If that doesn't work, Filzer uses regular (mobile) access instead. It can be turned off in Settings > General > Run as Root.
 
-Nothing extra needs packaging, the app just has to be signed with `Resources/Filzer.entitlements` (the CI workflow does this for the `.tipa`). On a Mac, `bash Tests/RootHelper/smoke-test.sh` builds the root code and tests its file operations.
+Nothing extra needs packaging, the app just has to be signed with `Resources/Filzer.entitlements` (the CI workflow does this for the `.tipa`).
 
 ## TODO
 
