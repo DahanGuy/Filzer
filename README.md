@@ -52,7 +52,7 @@ Paths can also be passed as `?path=/var/mobile`. Opening a file also moves the b
 ## TODO
 
 - [ ] Make small UI Changes and fix small UI Bugs (mostly)
-- [ ] Fix Trollstore version cannot access entire filesystem
+- [x] Fix Trollstore version cannot access entire filesystem
 - [ ] Fix Network Locations (possibly not working)
 - [ ] Change app icon
 - [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback

@@ -109,8 +109,14 @@ jobs:
           name: Filzer-trollstore-tipa
           path: Filzer.tipa
 
-      - name: Upload .deb packages
+      - name: Upload rootful .deb
         uses: actions/upload-artifact@v4
         with:
-          name: Filzer-deb
-          path: "*.deb"
+          name: Filzer-rootful-deb
+          path: Filzer-rootful.deb
+
+      - name: Upload rootless .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Filzer-rootless-deb
+          path: Filzer-rootless.deb
