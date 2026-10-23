@@ -55,11 +55,10 @@ Paths can also be passed as `?path=/var/mobile`. Opening a file also moves the b
 - [x] Fix Trollstore version cannot access entire filesystem
 - [ ] Fix Network Locations (possibly not working)
 - [ ] Change app icon
-- [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback
+- [ ] Use [KSPlayer](https://github.com/kingslay/KSPlayer) for video playback
 - [ ] Use [swift-archive](https://github.com/marcprux/swift-archive) instead of SWCompression, ZIPFoundation and Unrar.swift for archive handling
 - [ ] Add Tabs
 - [ ] Add more viewers (like a PDF viewer or a Microsoft Document Viewer etc..)
-- [ ] Maybe Add Sandbox Escape Exploits (like bad_query, MobileHouseArrest, MDC, Darksword and Coruna)
 
 ## Credits
 
