@@ -22,7 +22,7 @@ struct SWCompressionArchiveService: ArchiveService {
 			try GzipArchive.archive(data: tarData, fileName: destination.deletingPathExtension().lastPathComponent).write(to: destination)
 		case .tarBz2:
 			try BZip2.compress(data: tarData).write(to: destination)
-		case .zip, .rar, .gzip, .bzip2, .xz, .sevenZip:
+		case .zip, .rar, .gzip, .bzip2, .xz, .sevenZip, .deb:
 			throw FileSystemError.unsupported("Filzer can't create this archive format.")
 		}
 	}
