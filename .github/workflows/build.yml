@@ -19,6 +19,11 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Test root helper
+        run: |
+          bash scripts/build-root-helper.sh build/root-helper-host
+          bash scripts/test-root-helper.sh build/root-helper-host
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
