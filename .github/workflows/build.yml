@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       nightly:
-        description: Publish this build as the nightly release, replacing the previous one
+        description: Publish nightly release
         type: boolean
-        default: false
+        default: true
 
 jobs:
   build:
@@ -129,14 +129,18 @@ jobs:
           path: Filzer-rootless.deb
 
       - name: Publish nightly release
-        if: inputs.nightly
+        if: >-
+          (github.event_name != 'workflow_dispatch' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) ||
+          inputs.nightly
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           gh release delete nightly --cleanup-tag --yes || true
           gh release create nightly \
             Filzer.ipa Filzer.tipa Filzer-rootful.deb Filzer-rootless.deb \
             --prerelease \
-            --target "$GITHUB_SHA" \
+            --target "$TARGET_SHA" \
             --title "Nightly" \
-            --notes "Built from commit $GITHUB_SHA. The next nightly replaces this one."
+            --notes "Built from commit $TARGET_SHA. The next nightly replaces this one."
