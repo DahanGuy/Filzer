@@ -5,5 +5,5 @@ protocol FileSystemEngine {
 }
 
 enum FileSystem {
-	static var current: FileSystemEngine = MainFileSystemEngine()
+	static var current: FileSystemEngine = RootRoutingFileSystemEngine(base: MainFileSystemEngine())
 }

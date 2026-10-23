@@ -10,14 +10,11 @@ struct SWCompressionArchiveService: ArchiveService {
 	}
 
 	func compress(_ urls: [URL], to destination: URL) throws {
-		guard !urls.isEmpty else {
-			throw FileSystemError.operationFailed("Nothing selected to compress.")
-		}
 		var entries: [TarEntry] = []
 		for url in urls {
 			entries += try tarEntries(at: url, name: url.lastPathComponent)
 		}
-		let tarData = TarContainer.create(from: entries)
+		let tarData = entries.isEmpty ? Data(count: 1024) : TarContainer.create(from: entries)
 		switch ArchiveFormat.detect(from: destination) {
 		case .tar:
 			try tarData.write(to: destination)
@@ -25,7 +22,7 @@ struct SWCompressionArchiveService: ArchiveService {
 			try GzipArchive.archive(data: tarData, fileName: destination.deletingPathExtension().lastPathComponent).write(to: destination)
 		case .tarBz2:
 			try BZip2.compress(data: tarData).write(to: destination)
-		case .zip, .rar, .gzip, .bzip2, .xz, .sevenZip:
+		case .zip, .rar, .gzip, .bzip2, .xz, .sevenZip, .deb:
 			throw FileSystemError.unsupported("Filzer can't create this archive format.")
 		}
 	}
@@ -79,8 +76,16 @@ struct SWCompressionArchiveService: ArchiveService {
 	}
 
 	private func rawEntries(of archive: URL) throws -> [RawEntry] {
+		let format = ArchiveFormat.detect(from: archive)
+		if format == .deb {
+			return try TarContainer.open(container: DebInspector.dataTar(of: archive)).compactMap { (entry) -> RawEntry? in
+				let name = DebInspector.normalized(entry.info.name)
+				guard !name.isEmpty else { return nil }
+				return RawEntry(name: name, isDirectory: entry.info.type == .directory, size: Int(entry.info.size ?? 0), data: entry.data)
+			}
+		}
 		let raw = try Data(contentsOf: archive)
-		switch ArchiveFormat.detect(from: archive) {
+		switch format {
 		case .tar:
 			return try TarContainer.open(container: raw).map {
 				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
@@ -108,7 +113,7 @@ struct SWCompressionArchiveService: ArchiveService {
 			return try SevenZipContainer.open(container: raw).map {
 				RawEntry(name: $0.info.name, isDirectory: $0.info.type == .directory, size: Int($0.info.size ?? 0), data: $0.data)
 			}
-		case .zip, .rar:
+		case .zip, .rar, .deb:
 			throw FileSystemError.unsupported("This archive format isn't handled by SWCompressionArchiveService.")
 		}
 	}

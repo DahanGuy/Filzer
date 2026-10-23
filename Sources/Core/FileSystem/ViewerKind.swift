@@ -11,6 +11,7 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 	case archive
 	case quickLook
 	case ipa
+	case deb
 	case mobileProvision
 
 	var id: String { rawValue }
@@ -27,6 +28,7 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 		case .archive: return "Archive Viewer"
 		case .quickLook: return "Quick Look"
 		case .ipa: return "App Inspector"
+		case .deb: return "Package Inspector"
 		case .mobileProvision: return "Provisioning Profile"
 		}
 	}
@@ -43,20 +45,22 @@ enum ViewerKind: String, CaseIterable, Identifiable, Codable {
 		case .archive: return "doc.zipper"
 		case .quickLook: return "eye"
 		case .ipa: return "app.badge"
+		case .deb: return "shippingbox"
 		case .mobileProvision: return "checkmark.seal"
 		}
 	}
 
 	var requiresLocalFile: Bool {
 		switch self {
-		case .media, .web, .sqlite, .quickLook, .archive, .ipa: return true
+		case .media, .web, .sqlite, .quickLook, .archive, .ipa, .deb: return true
 		case .text, .hex, .image, .propertyList, .mobileProvision: return false
 		}
 	}
 
 	static func defaultViewer(for node: FileNode) -> ViewerKind {
 		let extensionLowercased = node.pathExtension.lowercased()
-		if extensionLowercased == "ipa" { return .ipa }
+		if extensionLowercased == "ipa" || extensionLowercased == "tipa" { return .ipa }
+		if extensionLowercased == "deb" { return .deb }
 		if extensionLowercased == "mobileprovision" { return .mobileProvision }
 		switch FileClassifier.category(for: node) {
 		case .folder, .symbolicLink: return .quickLook

@@ -32,6 +32,7 @@ final class SettingsStore: ObservableObject {
 		static let biometricLockEnabled = "Filzer.Settings.BiometricLockEnabled"
 		static let lockTimeoutSeconds = "Filzer.Settings.LockTimeoutSeconds"
 		static let recursiveSearch = "Filzer.Settings.RecursiveSearch"
+		static let useRootAccess = RootAccess.enabledDefaultsKey
 	}
 
 	@Published var showHiddenFiles: Bool { didSet { defaults.set(showHiddenFiles, forKey: Keys.showHiddenFiles) } }
@@ -40,6 +41,12 @@ final class SettingsStore: ObservableObject {
 	@Published var biometricLockEnabled: Bool { didSet { defaults.set(biometricLockEnabled, forKey: Keys.biometricLockEnabled) } }
 	@Published var lockTimeoutSeconds: Int { didSet { defaults.set(lockTimeoutSeconds, forKey: Keys.lockTimeoutSeconds) } }
 	@Published var recursiveSearch: Bool { didSet { defaults.set(recursiveSearch, forKey: Keys.recursiveSearch) } }
+	@Published var useRootAccess: Bool {
+		didSet {
+			defaults.set(useRootAccess, forKey: Keys.useRootAccess)
+			RootAccess.shared.invalidate()
+		}
+	}
 
 	@Published var sortDescriptor: FileSortDescriptor {
 		didSet {
@@ -58,6 +65,7 @@ final class SettingsStore: ObservableObject {
 		biometricLockEnabled = defaults.object(forKey: Keys.biometricLockEnabled) as? Bool ?? false
 		lockTimeoutSeconds = defaults.object(forKey: Keys.lockTimeoutSeconds) as? Int ?? 60
 		recursiveSearch = defaults.object(forKey: Keys.recursiveSearch) as? Bool ?? true
+		useRootAccess = defaults.object(forKey: Keys.useRootAccess) as? Bool ?? true
 		let field = FileSortField(rawValue: defaults.string(forKey: Keys.sortField) ?? "") ?? .name
 		let ascending = defaults.object(forKey: Keys.sortAscending) as? Bool ?? true
 		sortDescriptor = FileSortDescriptor(field: field, ascending: ascending)

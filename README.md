@@ -21,22 +21,38 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 - **Image Viewer** - Image displaying and metadata
 - **Media Player** - Audio/video playback and metadata
 - **SQLite Viewer** - Browse tables and run SQL queries
-- **IPA Inspector** - App icon, bundle ID, version, minimum iOS and extract or browse contents
+- **IPA / TIPA Inspector** - App icon, bundle ID, version, minimum iOS and extract or browse contents, plus an Install App button when TrollStore is installed
+- **.deb Inspector** - Control info, scripts and browsable contents (with Extract All) of .deb packages, tells iOS tweaks apart from regular Debian packages and has an Install with Sileo button when Sileo is installed (gzip, xz, bzip2 and lzma packages only, zstd isn't supported yet)
 - **Provisioning Profile Viewer** - Profile details, validity, devices and entitlements
 - **Web Viewer** - uses WebKit to display HTML files
 - **Network Locations** - WebDAV, FTP/FTPS and SMB file shares, and Dropbox, Google Drive and OneDrive as Cloud Network Locations
 - **Biometric Lock** - Face ID / Touch ID or Passcode app lock
 - **Permissions Editor** - set read/write or execute permissions for owner, group and others.
+- **Root Access** (TrollStore and .deb builds) - file operations run as root, falling back to regular (mobile) access if root isn't available
+- **URL Scheme** - `filzer://` opens folders and files from other apps, see [below](#url-scheme)
 
 ## Requirements
 
 - Xcode 13+ (with iOS/iPadOS SDK)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
+## URL Scheme
+
+Other apps and Shortcuts can open Filzer at a path with `filzer://`:
+
+| URL | Action |
+| --- | --- |
+| `filzer://open/var/mobile` | Go to a folder, or open a file in its default viewer |
+| `filzer://view/var/mobile/file.bin?viewer=hex` | Open a file in a specific viewer |
+| `filzer://hex/var/mobile/file.bin` | Same as above, with the viewer as the host (`text`, `hex`, `image`, `media`, `web`, `plist`, `sqlite`, `archive`, `quickLook`, `ipa`, `deb`, `mobileProvision`) |
+| `filzer://info/var/mobile/file.bin` | Show a file's info sheet |
+
+Paths can also be passed as `?path=/var/mobile`. Opening a file also moves the browser to the folder it's in.
+
 ## TODO
 
 - [ ] Make small UI Changes and fix small UI Bugs (mostly)
-- [ ] Fix Trollstore version cannot access entire filesystem
+- [x] Fix Trollstore version cannot access entire filesystem
 - [ ] Fix Network Locations (possibly not working)
 - [ ] Change app icon
 - [ ] Use [mpv](https://github.com/mpv-player/mpv) for video playback

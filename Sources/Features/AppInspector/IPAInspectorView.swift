@@ -7,6 +7,8 @@ struct IPAInspectorView: View {
 	@State private var summary: IPASummary?
 	@State private var errorMessage: String?
 	@State private var isLoading = true
+	@State private var canInstall = false
+	@State private var installError: String?
 
 	var body: some View {
 		Group {
@@ -22,6 +24,13 @@ struct IPAInspectorView: View {
 						infoRow("Minimum iOS", summary.minimumOSVersion ?? "\u{2014}")
 						infoRow("Executable", summary.executableName ?? "\u{2014}")
 					}
+					if canInstall {
+						Section(footer: Text("Hands this file to TrollStore to install.")) {
+							Button { install() } label: {
+								Label("Install App", systemImage: "square.and.arrow.down")
+							}
+						}
+					}
 					Section {
 						NavigationLink(destination: ArchiveBrowserView(url: url)) {
 							NavigationLabel(text: "Browse Contents", icon: "archivebox")
@@ -31,11 +40,13 @@ struct IPAInspectorView: View {
 			} else if isLoading {
 				ProgressView()
 			} else {
-				EmptyStateView(icon: "questionmark.app.dashed", title: "Couldn't Read IPA", message: errorMessage)
+				EmptyStateView(icon: "questionmark.app.dashed", title: "Couldn't Read App", message: errorMessage)
 			}
 		}
 		.navigationTitle(summary?.displayName ?? url.lastPathComponent)
 		.task { await load() }
+		.task { canInstall = await TrollStoreInstaller.isInstalled() }
+		.errorAlert($installError)
 	}
 
 	private func identityRow(_ summary: IPASummary) -> some View {
@@ -62,6 +73,15 @@ struct IPAInspectorView: View {
 			Text(label).foregroundStyle(.secondary)
 			Spacer()
 			Text(value).multilineTextAlignment(.trailing)
+		}
+	}
+
+	private func install() {
+		Task {
+			let opened = await TrollStoreInstaller.install(url)
+			if !opened {
+				installError = "Couldn't open TrollStore."
+			}
 		}
 	}
 

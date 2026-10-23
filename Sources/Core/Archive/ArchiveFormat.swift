@@ -10,6 +10,7 @@ enum ArchiveFormat {
 	case bzip2
 	case xz
 	case sevenZip
+	case deb
 
 	static func detect(from url: URL) -> ArchiveFormat {
 		let name = url.lastPathComponent.lowercased()
@@ -27,6 +28,7 @@ enum ArchiveFormat {
 		case "bz2": return .bzip2
 		case "xz": return .xz
 		case "7z": return .sevenZip
+		case "deb": return .deb
 		default: return .zip
 		}
 	}
@@ -72,6 +74,7 @@ enum ArchiveFormat {
 		case .bzip2: return "Bzip2"
 		case .xz: return "XZ"
 		case .sevenZip: return "7-Zip"
+		case .deb: return "Debian Package"
 		}
 	}
 
@@ -86,6 +89,7 @@ enum ArchiveFormat {
 		case .bzip2: return "bz2"
 		case .xz: return "xz"
 		case .sevenZip: return "7z"
+		case .deb: return "deb"
 		}
 	}
 }

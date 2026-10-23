@@ -119,6 +119,17 @@ final class FileBrowserViewModel: ObservableObject {
 		await run { try await FileSystem.current.compressItems(urls, to: destination) }
 	}
 
+	func createEmptyArchive(name: String, format: ArchiveFormat) async {
+		let fileName = name.lowercased().hasSuffix("." + format.fileExtension) ? name : "\(name).\(format.fileExtension)"
+		let destination = rootURL.appendingPathComponent(fileName)
+		await run {
+			let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + format.fileExtension)
+			defer { try? FileManager.default.removeItem(at: scratch) }
+			try await FileSystem.current.compressItems([], to: scratch)
+			try await FileSystem.current.createFile(at: destination, contents: try Data(contentsOf: scratch))
+		}
+	}
+
 	func setPermissions(_ urls: [URL], posixPermissions: Int16, recursive: Bool) async {
 		await run { try await FileSystem.current.setPermissions(urls, posixPermissions: posixPermissions, recursive: recursive) }
 	}

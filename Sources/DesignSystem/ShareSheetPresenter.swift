@@ -2,15 +2,20 @@ import SwiftUI
 import UIKit
 
 @MainActor
-func presentMultiShareSheet(for urls: [URL]) {
-	guard !urls.isEmpty else { return }
+func topPresentedViewController() -> UIViewController? {
 	guard
 		let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
 		var topController = scene.windows.first(where: \.isKeyWindow)?.rootViewController
-	else { return }
+	else { return nil }
 	while let presented = topController.presentedViewController {
 		topController = presented
 	}
+	return topController
+}
+
+@MainActor
+func presentMultiShareSheet(for urls: [URL]) {
+	guard !urls.isEmpty, let topController = topPresentedViewController() else { return }
 
 	let activityController = UIActivityViewController(activityItems: urls, applicationActivities: nil)
 	if let popover = activityController.popoverPresentationController {

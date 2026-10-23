@@ -13,6 +13,7 @@ extension AppTheme {
 struct RootBrowserShell: View {
 	@EnvironmentObject private var settings: SettingsStore
 	@StateObject private var lockGate = AppLockGate()
+	@ObservedObject private var urlRouter = FilzerURLRouter.shared
 
 	var body: some View {
 		NavigationView {
@@ -23,5 +24,15 @@ struct RootBrowserShell: View {
 		.onAppear {
 			lockGate.configure(settings: settings)
 		}
+		.onOpenURL { urlRouter.handle($0) }
+		.sheet(item: $urlRouter.viewerTarget) { target in
+			NavigationView { FileViewerRoute(node: target.node, forcedKind: target.kind) }
+				.navigationViewStyle(.stack)
+		}
+		.sheet(item: $urlRouter.infoTarget) { node in
+			NavigationView { FileInfoView(node: node) }
+				.navigationViewStyle(.stack)
+		}
+		.errorAlert($urlRouter.errorMessage)
 	}
 }
