@@ -3,9 +3,6 @@ import ZIPFoundation
 
 struct ZIPFoundationArchiveService: ArchiveService {
 	func compress(_ urls: [URL], to destination: URL) throws {
-		guard !urls.isEmpty else {
-			throw FileSystemError.operationFailed("Nothing selected to compress.")
-		}
 		if urls.count == 1 {
 			try FileManager.default.zipItem(at: urls[0], to: destination, shouldKeepParent: true, compressionMethod: .deflate)
 			return

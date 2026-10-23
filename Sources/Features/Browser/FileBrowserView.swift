@@ -748,6 +748,13 @@ struct FileBrowserView: View {
 		} label: {
 			Label("New File", systemImage: "doc.badge.plus")
 		}
+		Menu {
+			ForEach(ArchiveFormat.creatable, id: \.fileExtension) { format in
+				Button(format.title) { promptNewArchive(format: format) }
+			}
+		} label: {
+			Label("New Archive", systemImage: "doc.zipper")
+		}
 		Button {
 			showingImporter = true
 		} label: {
@@ -773,6 +780,13 @@ struct FileBrowserView: View {
 		Alertinator.shared.prompt(title: "New File", placeholder: "Name", text: "untitled.txt") { name in
 			guard let name, !name.isEmpty else { return }
 			await viewModel.createFile(name: name)
+		}
+	}
+
+	private func promptNewArchive(format: ArchiveFormat) {
+		Alertinator.shared.prompt(title: "New Archive", placeholder: "Name", text: "Archive.\(format.fileExtension)") { name in
+			guard let name, !name.isEmpty else { return }
+			await viewModel.createEmptyArchive(name: name, format: format)
 		}
 	}
 

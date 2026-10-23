@@ -36,20 +36,6 @@ A fully-featured iOS/iPadOS 15+ file manager inspired by [Filza](https://www.tig
 - Xcode 13+ (with iOS/iPadOS SDK)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-## TrollStore and .deb builds
-
-The app itself always runs as `mobile`, so for these builds it launches a second copy of its own executable as root (using the `com.apple.private.persona-mgmt` entitlement) to read and edit protected folders. If that doesn't work, Filzer uses regular (mobile) access instead. It can be turned off in Settings > General > Run as Root.
-
-Nothing extra needs packaging, the app just has to be signed with `Resources/Filzer.entitlements` (the CI workflow does this for the `.tipa` and the `.deb` files).
-
-The CI workflow builds these installable packages:
-
-- `Filzer.tipa` - install with TrollStore
-- `Filzer-rootful.deb` - for rootful jailbreaks, installs to `/Applications`
-- `Filzer-rootless.deb` - for rootless jailbreaks, installs to `/var/jb/Applications`
-
-Install a `.deb` with Sileo, Zebra or `dpkg -i`, its post-install script runs `uicache` to register the app.
-
 ## URL Scheme
 
 Other apps and Shortcuts can open Filzer at a path with `filzer://`:

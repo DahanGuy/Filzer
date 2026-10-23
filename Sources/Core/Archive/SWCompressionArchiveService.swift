@@ -10,14 +10,11 @@ struct SWCompressionArchiveService: ArchiveService {
 	}
 
 	func compress(_ urls: [URL], to destination: URL) throws {
-		guard !urls.isEmpty else {
-			throw FileSystemError.operationFailed("Nothing selected to compress.")
-		}
 		var entries: [TarEntry] = []
 		for url in urls {
 			entries += try tarEntries(at: url, name: url.lastPathComponent)
 		}
-		let tarData = TarContainer.create(from: entries)
+		let tarData = entries.isEmpty ? Data(count: 1024) : TarContainer.create(from: entries)
 		switch ArchiveFormat.detect(from: destination) {
 		case .tar:
 			try tarData.write(to: destination)
