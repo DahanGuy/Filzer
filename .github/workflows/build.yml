@@ -79,7 +79,7 @@ jobs:
             printf '%s\n' \
               "Package: com.guy.filzer" \
               "Name: Filzer" \
-              "Version: 1.0" \
+              "Version: 1.1" \
               "Architecture: $arch" \
               "Section: Utilities" \
               "Maintainer: Guy Dahan" \
