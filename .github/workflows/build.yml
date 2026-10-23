@@ -58,6 +58,45 @@ jobs:
           cd Payload-TS && zip -qr ../Filzer.tipa Payload && cd ..
           rm -rf Payload-TS
 
+      - name: Install dpkg
+        run: brew install dpkg
+
+      - name: Package .deb (rootful and rootless)
+        run: |
+          app_path="build/Build/Products/Debug-iphoneos/Filzer.app"
+          for framework in "$app_path"/Frameworks/*.framework; do
+            if [ -d "$framework" ]; then
+              ldid -S "$framework/$(basename "$framework" .framework)"
+            fi
+          done
+
+          build_deb() {
+            variant="$1"; arch="$2"; prefix="$3"
+            app_dir="$prefix/Applications/Filzer.app"
+            root="deb-$variant"
+            mkdir -p "$root/DEBIAN" "$root$prefix/Applications"
+            cp -R "$app_path" "$root$prefix/Applications/"
+            printf '%s\n' \
+              "Package: com.guy.filzer" \
+              "Name: Filzer" \
+              "Version: 1.0" \
+              "Architecture: $arch" \
+              "Section: Utilities" \
+              "Maintainer: Guy Dahan" \
+              "Author: Guy Dahan" \
+              "Depends: firmware (>= 15.0)" \
+              "Installed-Size: $(du -sk "$root$prefix" | cut -f1)" \
+              "Description: File manager with root access" \
+              > "$root/DEBIAN/control"
+            printf '%s\n' '#!/bin/sh' "uicache -p \"$app_dir\" || uicache" 'exit 0' > "$root/DEBIAN/postinst"
+            printf '%s\n' '#!/bin/sh' 'if [ "$1" = remove ] || [ "$1" = purge ]; then' "  uicache -u \"$app_dir\" || true" 'fi' 'exit 0' > "$root/DEBIAN/prerm"
+            chmod 755 "$root/DEBIAN/postinst" "$root/DEBIAN/prerm"
+            COPYFILE_DISABLE=1 dpkg-deb --root-owner-group -Zgzip -b "$root" "Filzer-$variant.deb"
+          }
+
+          build_deb rootful iphoneos-arm ""
+          build_deb rootless iphoneos-arm64 /var/jb
+
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
@@ -69,3 +108,9 @@ jobs:
         with:
           name: Filzer-trollstore-tipa
           path: Filzer.tipa
+
+      - name: Upload .deb packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Filzer-deb
+          path: "*.deb"
